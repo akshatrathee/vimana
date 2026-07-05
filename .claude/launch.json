@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "skylight-server",
+      "name": "vimana-server",
       "runtimeExecutable": "python",
       "runtimeArgs": ["server.py"],
       "port": 8642,

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Skylight-at-home local server.
+Vimana local server.
 
 Serves the static visualizer from ./public and proxies aircraft
-lookups to the free adsb.lol API. Proxying (rather than calling
-adsb.lol directly from the browser) exists for two reasons:
-  1. adsb.lol does not send Access-Control-Allow-Origin, so a
-     direct browser fetch() from a page served on its own origin
-     gets blocked by CORS.
+lookups to free community ADS-B APIs (adsb.lol, adsb.fi,
+airplanes.live, merged by ICAO hex). Proxying (rather than calling
+them directly from the browser) exists for two reasons:
+  1. The APIs don't send Access-Control-Allow-Origin, so a direct
+     browser fetch() from a page served on its own origin gets
+     blocked by CORS.
   2. A same-origin proxy lets us cache the upstream response for a
      few seconds, so opening the page in several tabs/browsers (or
      a flaky Pi Wi-Fi reconnecting) doesn't hammer the free API.
@@ -69,7 +70,7 @@ AIRCRAFT_SOURCES = [
     ("airplanes.live", "https://api.airplanes.live/v2/point/{lat}/{lon}/{r}"),
 ]
 ADSBDB_ROUTE_URL = "https://api.adsbdb.com/v0/callsign/{callsign}"
-USER_AGENT = "skylight-at-home/1.0 (personal, non-commercial)"
+USER_AGENT = "vimana/1.0 (personal, non-commercial)"
 
 _cache = {"radius": None, "body": None, "fetched_at": 0.0}
 CACHE_TTL_SECONDS = max(3, CONFIG["poll_interval_seconds"] - 2)
@@ -310,7 +311,7 @@ def main():
     # Binding to 0.0.0.0 makes the server reachable from any interface
     # (needed later so a phone/laptop on the same Wi-Fi can reach the
     # Pi), but 0.0.0.0 is not itself a valid address to *browse to*.
-    print(f"Skylight-at-home listening on port {port}")
+    print(f"Vimana listening on port {port}")
     print(f"Open this in your browser: http://localhost:{port}")
     if is_configured(CONFIG):
         print(f"Home location: {CONFIG['home_lat']}, {CONFIG['home_lon']}")

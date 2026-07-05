@@ -1,4 +1,4 @@
-/* Skylight at Home — ambient audio.
+/* Vimana — ambient audio.
    Two layers, both behind the HUD "sound" toggle (browsers refuse to
    autoplay audio until the user interacts with the page, so the toggle
    click doubles as the unlock gesture; a kiosk Chromium can bypass

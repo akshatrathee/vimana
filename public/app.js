@@ -1,4 +1,4 @@
-/* Skylight at Home — abstract polar radar (no map tiles).
+/* Vimana — abstract polar radar (no map tiles).
    Aircraft positions: adsb.lol free API, proxied through /api/aircraft.
    Routes (origin/destination): adsbdb.com, proxied through /api/route.
    Both proxied so the browser only ever talks to our own origin. */

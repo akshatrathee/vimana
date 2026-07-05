@@ -1,6 +1,6 @@
-# Skylight at Home
+# Vimana
 
-Skylight at Home is a self-hosted web page that shows live air traffic around your house as a night-sky radar: glowing per-type aircraft silhouettes with route and ETA cards, a sweep and ping animation, ambient music, and sporadic garbled ATC radio chatter. It is designed to be projected onto a ceiling or shown on a spare screen, and runs comfortably on a Raspberry Pi.
+Vimana ("flying palace" in the Sanskrit epics) is a self-hosted web page that shows live air traffic around your house as a night-sky radar: glowing per-type aircraft silhouettes with route and ETA cards, a sweep and ping animation, ambient music, and sporadic garbled ATC radio chatter. It is designed to be projected onto a ceiling or shown on a spare screen, and runs comfortably on a Raspberry Pi.
 
 It needs no receiver hardware and no API keys: aircraft positions come from three free community ADS-B networks (adsb.lol, adsb.fi, airplanes.live) merged together, and flight routes come from adsbdb.com. Inspired by the [Skylight](https://skylightceiling.com/) ceiling projector project; the code here is an independent implementation.
 
@@ -9,12 +9,12 @@ It needs no receiver hardware and no API keys: aircraft positions come from thre
 Prerequisites: Python 3.8 or newer. There are no packages to install — the server uses only the Python standard library.
 
 ```
-git clone https://github.com/<you>/skylight-at-home.git
-cd skylight-at-home
+git clone https://github.com/akshatrathee/vimana.git
+cd vimana
 python server.py
 ```
 
-Verify: the terminal prints `Skylight-at-home listening on port 8642`. Open http://localhost:8642 in a browser.
+Verify: the terminal prints `Vimana listening on port 8642`. Open http://localhost:8642 in a browser.
 
 Developers run from source the same way — there is no build step. Static frontend files live in `public/`; the server is `server.py`.
 
@@ -40,7 +40,7 @@ To update, `git pull` and restart `python server.py`. Your `config.json` is unto
 The only state is `config.json`. Copy it somewhere safe:
 
 ```
-cp config.json ~/skylight-config-backup.json
+cp config.json ~/vimana-config-backup.json
 ```
 
 ## How to restore
@@ -48,7 +48,7 @@ cp config.json ~/skylight-config-backup.json
 Copy the backup into the project root and restart the server:
 
 ```
-cp ~/skylight-config-backup.json config.json
+cp ~/vimana-config-backup.json config.json
 python server.py
 ```
 
@@ -63,3 +63,5 @@ Stop the server (Ctrl+C) and delete the project folder. Nothing is installed els
 - Visual concept inspired by [Skylight](https://skylightceiling.com/) by cpaczek — this is an independent, from-scratch implementation.
 - Aircraft data: [adsb.lol](https://adsb.lol), [adsb.fi](https://adsb.fi), [airplanes.live](https://airplanes.live). Route data: [adsbdb.com](https://adsbdb.com). All free community services — consider feeding them if you get a receiver.
 - Background video, music track (`Skybound.mp3`), and ATC voice clips are AI-generated for this project.
+
+Licensed under the Apache License 2.0 — see [LICENSE](LICENSE).
