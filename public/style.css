@@ -1,0 +1,425 @@
+:root {
+  --bg: #04050a;
+  --panel-bg: rgba(6, 10, 16, 0.82);
+  --ring: rgba(140, 170, 200, 0.22);
+  --text-dim: #7f95ac;
+  --border: rgba(140, 170, 200, 0.25);
+  --red: #ff5c5c;
+  --amber: #ffb347;
+  --cyan: #7fe3ff;
+  --label-scale: 1;
+  /* The reference UI is a light, letter-spaced sans -- not a terminal
+     monospace. Segoe covers Windows; the rest are sane fallbacks. */
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: #cfe3f5;
+  overflow: hidden;
+}
+
+#bg-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -2;
+  /* The generated clip is already near-black; lift it slightly so the
+     drifting haze/star motion is actually perceptible behind the UI. */
+  filter: brightness(1.35) saturate(1.15);
+}
+
+/* Light vignette over the video so HUD text and plane labels stay
+   legible at the edges without killing the motion in the middle. */
+#starfield::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(4,5,10,0) 0%, rgba(4,5,10,0.45) 100%);
+  z-index: -1;
+}
+
+#starfield {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+#starfield .star {
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+}
+
+#radar {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+#rings { position: absolute; inset: 0; }
+#rings .ring {
+  position: absolute;
+  border: 1px dotted rgba(140, 170, 200, 0.16);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+#rings .ring-label {
+  position: absolute;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: rgba(127, 149, 172, 0.55);
+  transform: translate(6px, -50%);
+}
+
+#sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+#sweep .cone {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 140vmax;
+  height: 140vmax;
+  margin-left: -70vmax;
+  margin-top: -70vmax;
+  background: conic-gradient(
+    from 0deg,
+    rgba(120, 220, 180, 0.18) 0deg,
+    transparent 35deg,
+    transparent 360deg
+  );
+  animation: sweep 4s linear infinite;
+}
+@keyframes sweep {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Expanding ping ring: fires once every 10s. The ring grows from the
+   center to the outer radar ring in the first quarter of the cycle,
+   then stays invisible for the rest -- a heartbeat, not a strobe.
+   88vmin matches the radar diameter (radarRadiusPx = 44% of vmin). */
+#ping {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 88vmin;
+  height: 88vmin;
+  margin: -44vmin 0 0 -44vmin;
+  border: 2px solid rgba(53, 255, 138, 0.55);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: ping 10s linear infinite;
+}
+@keyframes ping {
+  0%   { transform: scale(0.01); opacity: 0.9; }
+  22%  { transform: scale(1);    opacity: 0; }
+  100% { transform: scale(1);    opacity: 0; }
+}
+
+#compass span {
+  position: absolute;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  transform: translate(-50%, -50%);
+}
+
+#home-marker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  background: #35ff8a;
+  border-radius: 50%;
+  box-shadow: 0 0 10px 3px rgba(53, 255, 138, 0.7);
+}
+
+#home-label {
+  position: absolute;
+  top: calc(50% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #9fd9b8;
+  text-shadow: 0 0 4px #000, 0 0 4px #000;
+  white-space: nowrap;
+}
+
+#trails { position: absolute; inset: 0; pointer-events: none; }
+
+#pois { position: absolute; inset: 0; pointer-events: none; }
+.poi {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.poi-icon {
+  width: 22px;
+  height: 22px;
+  opacity: 0.95;
+  filter: drop-shadow(0 0 5px rgba(168, 207, 232, 0.8));
+}
+.poi-label {
+  font-size: calc(10px * var(--label-scale));
+  letter-spacing: 0.14em;
+  color: #a8cfe8;
+  white-space: nowrap;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+}
+
+#planes { position: absolute; inset: 0; }
+
+.plane {
+  position: absolute;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  transform: translate(-50%, -50%);
+}
+
+.plane .glyph-wrap {
+  width: 30px;
+  height: 30px;
+  flex: none;
+}
+.plane .glyph {
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  /* currentColor is set per-plane inline, so each glyph glows its own
+     inbound/outbound hue -- the "fluorescent at night" look. */
+  filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 1.5px currentColor);
+}
+
+.plane .card {
+  white-space: nowrap;
+  font-size: calc(11.5px * var(--label-scale));
+  font-weight: 300;
+  line-height: 1.45;
+  padding-top: 1px;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+}
+.plane .card .callsign {
+  font-weight: 600;
+  font-size: calc(13px * var(--label-scale));
+  letter-spacing: 0.18em;
+  color: #fff;
+}
+.plane .card .meta,
+.plane .card .eta {
+  color: var(--text-dim);
+}
+.plane .card .route-line { color: #cfe3f5; }
+
+.plane.overhead .card .callsign { color: var(--red); }
+.plane.overhead .glyph { animation: pulse-glow 1s ease-in-out infinite alternate; }
+@keyframes pulse-glow {
+  from { filter: drop-shadow(0 0 4px currentColor); }
+  to   { filter: drop-shadow(0 0 12px currentColor); }
+}
+
+#hud {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 600;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 16px;
+  min-width: 220px;
+  backdrop-filter: blur(2px);
+}
+
+#hud .clock {
+  font-size: 22px;
+  letter-spacing: 2px;
+  color: #cfe3f5;
+}
+
+#hud .row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+#hud .row span.value { color: #cfe3f5; }
+
+#hud .status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+  background: var(--text-dim);
+}
+#hud .status-dot.live { background: #35ff8a; box-shadow: 0 0 6px #35ff8a; }
+#hud .status-dot.down { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+#hud .radius-control {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+#hud .radius-control input {
+  width: 50px;
+  background: #000;
+  border: 1px solid var(--border);
+  color: #cfe3f5;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 2px 4px;
+}
+
+#fullscreen-btn {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 600;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  color: #cfe3f5;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+#fullscreen-btn:hover { background: rgba(140, 170, 200, 0.15); }
+
+#settings-btn {
+  position: absolute;
+  bottom: 14px;
+  left: 130px;
+  z-index: 600;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  color: #cfe3f5;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+#settings-btn:hover { background: rgba(140, 170, 200, 0.15); }
+
+.hidden { display: none !important; }
+
+#setup-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 900;
+  background: rgba(4, 5, 10, 0.8);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+#setup-panel {
+  width: min(420px, calc(100vw - 40px));
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin: 20px 0;
+}
+#setup-panel h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #fff;
+}
+#setup-panel .setup-hint {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+#setup-panel fieldset {
+  border: 1px solid rgba(140, 170, 200, 0.18);
+  border-radius: 6px;
+  margin: 0 0 12px;
+  padding: 10px 12px 12px;
+}
+#setup-panel legend {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #a8cfe8;
+  padding: 0 6px;
+}
+#setup-panel legend .optional { text-transform: none; color: var(--text-dim); letter-spacing: 0; }
+#setup-panel label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+#setup-panel input {
+  display: block;
+  width: 100%;
+  margin-top: 3px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: #e6eef7;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+}
+#setup-panel .coord-row {
+  display: flex;
+  gap: 10px;
+}
+#setup-panel .coord-row label { flex: 1; }
+
+#setup-error {
+  color: var(--red);
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.setup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.setup-actions button {
+  background: rgba(53, 255, 138, 0.12);
+  border: 1px solid rgba(53, 255, 138, 0.4);
+  color: #b8ffd6;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.setup-actions button:hover { background: rgba(53, 255, 138, 0.22); }
+.setup-actions #setup-cancel {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-dim);
+}

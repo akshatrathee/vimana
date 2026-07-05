@@ -1,0 +1,6 @@
+# Personal location data -- created by the in-app setup screen.
+# Never commit this: it contains your home coordinates.
+config.json
+
+__pycache__/
+*.pyc

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Skylight at Home</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<video id="bg-video" autoplay loop muted playsinline>
+  <source src="assets/radar_bg.mp4" type="video/mp4">
+</video>
+<div id="starfield"></div>
+
+<div id="radar">
+  <div id="rings"></div>
+  <div id="ping"></div>
+  <div id="sweep"></div>
+  <div id="compass"></div>
+  <div id="pois"></div>
+  <div id="home-marker"></div>
+  <div id="home-label"></div>
+  <div id="trails"></div>
+  <div id="planes"></div>
+</div>
+
+<div id="hud">
+  <div class="clock" id="clock">--:--:--</div>
+  <div class="row"><span><span class="status-dot" id="status-dot"></span>status</span><span class="value" id="status-text">connecting</span></div>
+  <div class="row"><span>aircraft tracked</span><span class="value" id="ac-count">0</span></div>
+  <div class="row"><span>last update</span><span class="value" id="last-update">--</span></div>
+  <div class="radius-control">
+    <label for="radius-input">radius (nm)</label>
+    <input type="number" id="radius-input" min="5" max="250" step="5" value="40">
+  </div>
+  <div class="radius-control">
+    <label for="constellations-input">constellations</label>
+    <input type="checkbox" id="constellations-input">
+  </div>
+  <div class="radius-control">
+    <label for="sound-input">sound</label>
+    <input type="checkbox" id="sound-input">
+  </div>
+</div>
+
+<button id="fullscreen-btn" title="Toggle fullscreen">&#x26F6; fullscreen</button>
+<button id="settings-btn" title="Location settings">&#x2699;</button>
+
+<div id="setup-overlay" class="hidden">
+  <div id="setup-panel">
+    <h2>Skylight setup</h2>
+    <p class="setup-hint">Center the radar on your home. Right-click your house in Google Maps to copy its coordinates.</p>
+
+    <fieldset>
+      <legend>Home</legend>
+      <label>Label <input type="text" id="setup-home-label" placeholder="My house" maxlength="60"></label>
+      <div class="coord-row">
+        <label>Latitude <input type="text" id="setup-home-lat" placeholder="28.4564" inputmode="decimal"></label>
+        <label>Longitude <input type="text" id="setup-home-lon" placeholder="77.0986" inputmode="decimal"></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Point of interest 1 <span class="optional">(optional, e.g. an airport)</span></legend>
+      <label>Label <input type="text" id="setup-poi1-label" placeholder="DEL · Indira Gandhi Intl" maxlength="60"></label>
+      <div class="coord-row">
+        <label>Latitude <input type="text" id="setup-poi1-lat" inputmode="decimal"></label>
+        <label>Longitude <input type="text" id="setup-poi1-lon" inputmode="decimal"></label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Point of interest 2 <span class="optional">(optional)</span></legend>
+      <label>Label <input type="text" id="setup-poi2-label" maxlength="60"></label>
+      <div class="coord-row">
+        <label>Latitude <input type="text" id="setup-poi2-lat" inputmode="decimal"></label>
+        <label>Longitude <input type="text" id="setup-poi2-lon" inputmode="decimal"></label>
+      </div>
+    </fieldset>
+
+    <div id="setup-error" class="hidden"></div>
+    <div class="setup-actions">
+      <button id="setup-cancel" class="hidden">Cancel</button>
+      <button id="setup-save">Start tracking</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script src="audio.js"></script>
+</body>
+</html>

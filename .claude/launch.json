@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "skylight-server",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["server.py"],
+      "port": 8642,
+      "autoPort": true
+    }
+  ]
+}

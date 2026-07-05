@@ -1,0 +1,15 @@
+{
+  "_comment": "You don't need to edit this file. Run `python server.py`, open the page, and the setup screen will create config.json for you. This example exists only as reference for the format.",
+  "home_lat": 37.6191,
+  "home_lon": -122.3816,
+  "home_label": "My house",
+  "radius_nm": 40,
+  "poll_interval_seconds": 8,
+  "poi": [
+    {
+      "label": "SFO · San Francisco Intl",
+      "lat": 37.6213,
+      "lon": -122.379
+    }
+  ]
+}
