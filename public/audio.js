@@ -57,6 +57,40 @@ let music = null;
 let atcTimer = null;
 let atcBuffers = []; // decoded AudioBuffers (may be empty on fetch failure)
 
+/*
+ * "Random" selection alone doesn't guarantee variety -- Math.random()
+ * is memoryless, so the same clip can land twice in a row, or cluster
+ * far more often than a human expects from a 13-clip pool. A shuffle
+ * bag fixes this properly: shuffle every index once, hand them out in
+ * that order, and only reshuffle once the bag is empty -- every clip
+ * is guaranteed to play exactly once per cycle before any repeat.
+ */
+let atcBag = []; // shuffled indices into atcBuffers, consumed front-to-back
+let lastAtcIndex = -1;
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function nextAtcIndex() {
+  if (atcBag.length === 0) {
+    atcBag = shuffle([...Array(atcBuffers.length).keys()]);
+    // A fresh shuffle can still put the same clip that just closed
+    // out the previous cycle at the front of this one -- a 1-in-N
+    // chance the bag itself doesn't rule out. Swap it away from the
+    // front so no repeat is ever back-to-back, cycle boundary or not.
+    if (atcBag.length > 1 && atcBag[0] === lastAtcIndex) {
+      [atcBag[0], atcBag[1]] = [atcBag[1], atcBag[0]];
+    }
+  }
+  lastAtcIndex = atcBag.shift();
+  return lastAtcIndex;
+}
+
 function initAudioOnce() {
   if (audioCtx) return;
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -143,7 +177,7 @@ function playTransmission() {
   if (!atcBuffers.length) {
     return playStaticBurst(0.8 + Math.random() * 1.2);
   }
-  const buffer = atcBuffers[Math.floor(Math.random() * atcBuffers.length)];
+  const buffer = atcBuffers[nextAtcIndex()];
   const now = audioCtx.currentTime;
 
   const src = audioCtx.createBufferSource();
