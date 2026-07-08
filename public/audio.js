@@ -11,15 +11,35 @@
       its stable middle section and crossfaded tail into head so
       native <audio> looping plays it as one continuous, perpetual
       track rather than dipping to silence and restarting).
-   2. Sporadic "ATC radio": 10 short AI-generated voice clips, one
+   2. Sporadic "ATC radio": 13 short AI-generated voice clips, one
       picked at random each time, pushed through a Web Audio radio
       chain (bandpass + soft clipping + noise bed + squelch clicks),
       fired at random 15-45s intervals. If the clips are missing, it
-      falls back to static-only bursts. */
+      falls back to static-only bursts.
+
+   Controller-voiced clips (ground/tower/approach) share one accent
+   direction -- neutral, with a very subtle North Indian inflection,
+   since this is Delhi airspace -- while pilot-voiced clips carry
+   their airline's home-country accent (Thai, Japanese, German,
+   Finnish, Indian for the India-based carrier). */
 
 const MUSIC_URL = "assets/Skybound.mp3";
 const MUSIC_VOLUME = 0.3;
-const ATC_CLIPS = Array.from({ length: 10 }, (_, i) => `assets/atc/atc-${i + 1}.mp3`);
+const ATC_CLIPS = [
+  "assets/atc/atc-1.mp3",
+  "assets/atc/atc-2.mp3",
+  "assets/atc/atc-4.mp3",
+  "assets/atc/atc-5.mp3",
+  "assets/atc/atc-6.mp3",
+  "assets/atc/atc-8.mp3",
+  "assets/atc/atc-9.mp3",
+  "assets/atc/atc-10.mp3",
+  "assets/atc/atc-thai.mp3",
+  "assets/atc/atc-japan.mp3",
+  "assets/atc/atc-lufthansa-pilot.mp3",
+  "assets/atc/atc-finnair.mp3",
+  "assets/atc/atc-akasa.mp3",
+];
 const ATC_VOLUME = 0.5;
 const ATC_MIN_GAP_MS = 15 * 1000;
 const ATC_MAX_GAP_MS = 45 * 1000;

@@ -104,7 +104,12 @@ function generateStarfield() {
     const y = Math.random() * 100;
     const size = Math.random() < 0.15 ? 2 : 1;
     const opacity = 0.2 + Math.random() * 0.6;
-    html += `<div class="star" style="left:${x}%;top:${y}%;width:${size}px;height:${size}px;opacity:${opacity}"></div>`;
+    // Randomized duration + a *negative* delay so each star starts
+    // mid-cycle immediately (no synchronized flash-on at page load)
+    // and drifts out of phase with every other star from then on.
+    const duration = (3 + Math.random() * 4).toFixed(1);
+    const delay = (-Math.random() * 6).toFixed(1);
+    html += `<div class="star" style="left:${x}%;top:${y}%;width:${size}px;height:${size}px;--base-op:${opacity};animation-duration:${duration}s;animation-delay:${delay}s"></div>`;
   }
   // Constellations (dots + whisper-faint connecting lines) are off by
   // default and live behind the HUD toggle.
@@ -116,7 +121,9 @@ function generateStarfield() {
       const scale = 0.75;
       const pts = pattern.map(([px, py]) => [ox + px * scale, oy + py * scale]);
       pts.forEach(([x, y]) => {
-        html += `<div class="star" style="left:${x}%;top:${y}%;width:2px;height:2px;opacity:0.45"></div>`;
+        // Fixed (not twinkling) so the constellation shape stays
+        // readable at a glance rather than flickering apart.
+        html += `<div class="star" style="left:${x}%;top:${y}%;width:2px;height:2px;opacity:0.45;animation:none"></div>`;
       });
       for (let i = 1; i < pts.length; i++) {
         lines += `<line x1="${pts[i - 1][0]}%" y1="${pts[i - 1][1]}%" x2="${pts[i][0]}%" y2="${pts[i][1]}%"

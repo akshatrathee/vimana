@@ -4,7 +4,7 @@ Vimana ("flying palace" in the Sanskrit epics) is a self-hosted web page that sh
 
 It needs no receiver hardware and no API keys: aircraft positions come from three free community ADS-B networks (adsb.lol, adsb.fi, airplanes.live) merged together, and flight routes come from adsbdb.com. Inspired by the [Skylight](https://skylightceiling.com/) ceiling projector project; the code here is an independent implementation.
 
-Music is generated using higgsfield and suno (Chatter is 10 simulated chatters overlayed over the instrumental music. The music is oechestrated to the style of interstellar. The Crust game's OST was the vibe i was looking for.
+Music is generated using higgsfield and suno (Chatter is 13 simulated chatters overlayed over the instrumental music -- controller voices carry a neutral, subtly North Indian accent for Delhi airspace, while pilot voices carry their airline's home-country accent: Thai, Japanese, German, Finnish, and Indian for the India-based carrier. The music is oechestrated to the style of interstellar. The Crust game's OST was the vibe i was looking for.
 
 ## How to install
 
@@ -160,7 +160,7 @@ only affects your FR24 account, not what shows on your radar.
 - Visual concept inspired by [Skylight](https://skylightceiling.com/) by cpaczek — this is an independent, from-scratch implementation.
 - Music and vibe by the Game [The Crust](https://store.steampowered.com/app/1465470/The_Crust/) by Veom Studios and the [Crust OST](https://store.steampowered.com/app/2293920/The_Crust_Complete_Soundtrack_Pack/)
 - Aircraft data: [adsb.lol](https://adsb.lol), [adsb.fi](https://adsb.fi), [airplanes.live](https://airplanes.live). Route data: [adsbdb.com](https://adsbdb.com). All free community services — consider feeding them if you get a receiver.
-- Background image, music track (`Skybound.mp3`), and ATC voice clips are AI-generated for this project. Music and voice clips are generated using higgsfield (Chatter is 10 simulated transmissions overlayed over the instrumental music, one picked at random every 15-45s). The music is oechestrated to the style of interstellar
+- Background image, music track (`Skybound.mp3`), and ATC voice clips are AI-generated for this project. Music and voice clips are generated using higgsfield (Chatter is 13 simulated transmissions overlayed over the instrumental music, one picked at random every 15-45s). The music is oechestrated to the style of interstellar
 - QR code generation (`public/vendor/qrcode.js`) vendors Kazuhiko Arase's public-domain [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator), MIT licensed — the reference implementation several other JS QR libraries wrap.
 
 Licensed under the Apache License 2.0 — see [LICENSE](LICENSE).

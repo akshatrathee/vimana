@@ -37,6 +37,30 @@ html, body {
   filter: brightness(1.35) saturate(1.15);
 }
 
+/* Ambient sky motion, brought back as pure CSS after dropping the
+   looping background video (that cost continuous decode CPU/RAM;
+   opacity/transform animations are compositor-only and effectively
+   free by comparison, on any device, video or no video). Oversized
+   (-25% inset) so the drift/rotate never reveals a hard edge. */
+#aurora {
+  position: absolute;
+  inset: -25%;
+  z-index: -2;
+  background:
+    radial-gradient(ellipse 55% 38% at 28% 22%, rgba(80, 220, 180, 0.16), transparent 60%),
+    radial-gradient(ellipse 48% 34% at 72% 16%, rgba(150, 110, 230, 0.13), transparent 60%),
+    radial-gradient(ellipse 50% 30% at 50% 78%, rgba(70, 160, 220, 0.08), transparent 65%);
+  filter: blur(45px);
+  mix-blend-mode: screen;
+  animation: aurora-drift 80s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes aurora-drift {
+  0%   { transform: translate(-3%, -2%) rotate(0deg) scale(1); }
+  50%  { transform: translate(3%, 2%) rotate(3deg) scale(1.05); }
+  100% { transform: translate(-2%, 3%) rotate(-2deg) scale(1); }
+}
+
 /* Light vignette over the background so HUD text and plane labels
    stay legible at the edges without flattening the middle. */
 #starfield::before {
@@ -56,6 +80,14 @@ html, body {
   position: absolute;
   background: #fff;
   border-radius: 50%;
+  animation: twinkle 4s ease-in-out infinite;
+}
+/* --base-op and the animation-duration/-delay are set per-star inline
+   in app.js so they desync from each other -- a uniform twinkle across
+   160 stars would read as a strobe, not a night sky. */
+@keyframes twinkle {
+  0%, 100% { opacity: var(--base-op, 0.5); }
+  50%      { opacity: calc(var(--base-op, 0.5) * 0.25); }
 }
 
 #radar {
