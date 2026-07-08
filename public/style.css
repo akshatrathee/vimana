@@ -396,6 +396,50 @@ html, body {
 }
 #setup-panel .coord-row label { flex: 1; }
 
+#setup-panel .check-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 20px;
+}
+#setup-panel .check-label input {
+  display: inline-block;
+  width: auto;
+  margin: 0;
+}
+#setup-panel .url-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+#setup-panel .url-row input {
+  flex: 1;
+  margin-top: 0;
+  color: #a8cfe8;
+  font-size: 11px;
+}
+#setup-panel .url-row button {
+  background: rgba(140, 170, 200, 0.12);
+  border: 1px solid var(--border);
+  color: #cfe3f5;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 0 14px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+#setup-panel .url-row button:hover { background: rgba(140, 170, 200, 0.22); }
+#setup-panel code { color: #a8cfe8; font-size: 11px; }
+
+/* Kiosk/projector mode (?display=1): every interactive control
+   disappears; ?hud=0 additionally hides the whole info panel. */
+body.display-mode #hud .radius-control,
+body.display-mode #fullscreen-btn,
+body.display-mode #settings-btn {
+  display: none !important;
+}
+body.no-hud #hud { display: none !important; }
+
 #setup-error {
   color: var(--red);
   font-size: 12px;

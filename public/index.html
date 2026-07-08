@@ -79,6 +79,24 @@
       </div>
     </fieldset>
 
+    <fieldset>
+      <legend>Display defaults</legend>
+      <div class="coord-row">
+        <label>Radius (nm) <input type="number" id="setup-radius" min="5" max="250" step="5" value="40"></label>
+        <label class="check-label"><input type="checkbox" id="setup-sound"> Music &amp; ATC audio</label>
+        <label class="check-label"><input type="checkbox" id="setup-constellations"> Constellations</label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Projector URL <span class="optional">(for a Raspberry Pi / kiosk display)</span></legend>
+      <p class="setup-hint">A clean, control-free display URL with the settings above baked in. Save first, then put this URL on the kiosk device — see <code>deploy/README.md</code>.</p>
+      <div class="url-row">
+        <input type="text" id="projector-url" readonly>
+        <button type="button" id="copy-url-btn" title="Copy">Copy</button>
+      </div>
+    </fieldset>
+
     <div id="setup-error" class="hidden"></div>
     <div class="setup-actions">
       <button id="setup-cancel" class="hidden">Cancel</button>

@@ -5,6 +5,13 @@
 
 let HOME_LAT, HOME_LON, HOME_LABEL, RADIUS_NM, POLL_MS;
 let POIS = [];
+
+/* URL parameters drive kiosk/projector mode: the settings panel
+   generates a link like /?display=1&radius=40&sound=1&constellations=0
+   so a Raspberry Pi shows a clean, control-free screen with everything
+   decided up front. */
+const URL_PARAMS = new URLSearchParams(location.search);
+const DISPLAY_MODE = URL_PARAMS.get("display") === "1";
 let radarRadiusPx = 0;
 let centerX = 0, centerY = 0;
 let lastList = [];
@@ -592,9 +599,40 @@ function openSetup(cfg, firstRun) {
     val(`setup-poi${i + 1}-lat`, p.lat);
     val(`setup-poi${i + 1}-lon`, p.lon);
   });
+  val("setup-radius", cfg.radius_nm ?? 40);
+  document.getElementById("setup-sound").checked = !!cfg.sound_enabled;
+  document.getElementById("setup-constellations").checked = !!cfg.show_constellations;
+  updateProjectorUrl();
   document.getElementById("setup-cancel").classList.toggle("hidden", firstRun);
   document.getElementById("setup-error").classList.add("hidden");
   document.getElementById("setup-overlay").classList.remove("hidden");
+}
+
+/* The kiosk device is another machine, so the URL must use this
+   server's LAN address (reported by /api/config), never "localhost". */
+function updateProjectorUrl() {
+  const cfg = CONFIG_SNAPSHOT || {};
+  const host = cfg.lan_ip && cfg.port ? `${cfg.lan_ip}:${cfg.port}` : location.host;
+  const radius = document.getElementById("setup-radius").value || cfg.radius_nm || 40;
+  const sound = document.getElementById("setup-sound").checked ? 1 : 0;
+  const consts = document.getElementById("setup-constellations").checked ? 1 : 0;
+  const url = `http://${host}/?display=1&radius=${radius}&sound=${sound}&constellations=${consts}`;
+  document.getElementById("projector-url").value = url;
+}
+
+function copyProjectorUrl() {
+  const input = document.getElementById("projector-url");
+  input.select();
+  // navigator.clipboard needs a secure context, which plain-HTTP LAN
+  // pages aren't; execCommand still works there.
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(input.value);
+  } else {
+    document.execCommand("copy");
+  }
+  const btn = document.getElementById("copy-url-btn");
+  btn.textContent = "Copied";
+  setTimeout(() => (btn.textContent = "Copy"), 1500);
 }
 
 async function saveSetup() {
@@ -621,7 +659,15 @@ async function saveSetup() {
   const res = await fetch("/api/config", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ home_lat: lat, home_lon: lon, home_label: get("setup-home-label"), poi }),
+    body: JSON.stringify({
+      home_lat: lat,
+      home_lon: lon,
+      home_label: get("setup-home-label"),
+      poi,
+      radius_nm: parseFloat(get("setup-radius")) || 40,
+      sound_enabled: document.getElementById("setup-sound").checked,
+      show_constellations: document.getElementById("setup-constellations").checked,
+    }),
   });
   if (!res.ok) {
     errEl.textContent = "Saving failed — is the server still running?";
@@ -651,6 +697,13 @@ async function init() {
   document.getElementById("settings-btn").addEventListener("click", () => {
     openSetup(CONFIG_SNAPSHOT, false);
   });
+  document.getElementById("copy-url-btn").addEventListener("click", copyProjectorUrl);
+  ["setup-radius", "setup-sound", "setup-constellations"].forEach((id) => {
+    document.getElementById(id).addEventListener("input", updateProjectorUrl);
+  });
+
+  if (DISPLAY_MODE) document.body.classList.add("display-mode");
+  if (URL_PARAMS.get("hud") === "0") document.body.classList.add("no-hud");
 
   if (!cfg.configured) {
     openSetup(cfg, true);
@@ -661,8 +714,16 @@ async function init() {
   HOME_LON = cfg.home_lon;
   HOME_LABEL = cfg.home_label || "";
   POIS = cfg.poi || [];
-  RADIUS_NM = cfg.radius_nm;
   POLL_MS = cfg.poll_interval_seconds * 1000;
+
+  // Precedence: URL parameter (kiosk link) > saved config default.
+  const urlRadius = parseFloat(URL_PARAMS.get("radius"));
+  RADIUS_NM = isFinite(urlRadius) ? Math.max(5, Math.min(250, urlRadius)) : cfg.radius_nm;
+
+  const constParam = URL_PARAMS.get("constellations");
+  SHOW_CONSTELLATIONS = constParam != null ? constParam === "1" : !!cfg.show_constellations;
+  document.getElementById("constellations-input").checked = SHOW_CONSTELLATIONS;
+  if (SHOW_CONSTELLATIONS) generateStarfield();
 
   document.getElementById("radius-input").value = RADIUS_NM;
   document.getElementById("home-label").textContent = HOME_LABEL;
@@ -673,6 +734,14 @@ async function init() {
 
   refreshAircraft();
   setInterval(refreshAircraft, POLL_MS);
+
+  const soundParam = URL_PARAMS.get("sound");
+  const soundOn = soundParam != null ? soundParam === "1" : !!cfg.sound_enabled;
+  if (soundOn) {
+    const soundInput = document.getElementById("sound-input");
+    soundInput.checked = true;
+    soundInput.dispatchEvent(new Event("change", { bubbles: true }));
+  }
 }
 
 init();

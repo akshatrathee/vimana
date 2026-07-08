@@ -20,6 +20,7 @@ so this runs unmodified on a stock Raspberry Pi OS install.
 import json
 import math
 import os
+import socket
 import time
 import urllib.request
 import urllib.error
@@ -38,7 +39,26 @@ CONFIG_DEFAULTS = {
     "radius_nm": 40,
     "poll_interval_seconds": 8,
     "poi": [],
+    "sound_enabled": False,
+    "show_constellations": False,
 }
+
+SERVER_PORT = None  # set in main() once the port is known
+
+
+def get_lan_ip():
+    # UDP "connect" sends no packets; it just makes the OS pick the
+    # interface it would route through, which is the address a kiosk
+    # device elsewhere on the LAN needs (localhost would only work on
+    # this machine).
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        return s.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+    finally:
+        s.close()
 
 
 def load_config():
@@ -209,6 +229,10 @@ class Handler(SimpleHTTPRequestHandler):
                 "radius_nm": CONFIG["radius_nm"],
                 "poll_interval_seconds": CONFIG["poll_interval_seconds"],
                 "poi": CONFIG.get("poi", []),
+                "sound_enabled": bool(CONFIG.get("sound_enabled", False)),
+                "show_constellations": bool(CONFIG.get("show_constellations", False)),
+                "lan_ip": get_lan_ip(),
+                "port": SERVER_PORT,
             })
             return
 
@@ -279,14 +303,21 @@ class Handler(SimpleHTTPRequestHandler):
             except (KeyError, TypeError, ValueError):
                 continue
 
+        try:
+            radius_nm = max(5, min(250, float(incoming.get("radius_nm", CONFIG.get("radius_nm", 40)))))
+        except (TypeError, ValueError):
+            radius_nm = CONFIG.get("radius_nm", 40)
+
         new_config = dict(CONFIG_DEFAULTS)
         new_config.update({
             "home_lat": lat,
             "home_lon": lon,
             "home_label": str(incoming.get("home_label", ""))[:60],
-            "radius_nm": CONFIG.get("radius_nm", 40),
+            "radius_nm": radius_nm,
             "poll_interval_seconds": CONFIG.get("poll_interval_seconds", 8),
             "poi": pois,
+            "sound_enabled": bool(incoming.get("sound_enabled", False)),
+            "show_constellations": bool(incoming.get("show_constellations", False)),
         })
 
         CONFIG_PATH.write_text(
@@ -301,12 +332,14 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 def main():
+    global SERVER_PORT
     # 8000 is a common default that collides with other local services
     # (notably Docker Desktop's own backend API on Windows, which -- due
     # to SO_REUSEADDR letting a second process bind the "same" port
     # without erroring -- can silently steal every request meant for
     # this server). 8642 is picked simply for being uncommon.
     port = int(os.environ.get("PORT", 8642))
+    SERVER_PORT = port
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     # Binding to 0.0.0.0 makes the server reachable from any interface
     # (needed later so a phone/laptop on the same Wi-Fi can reach the

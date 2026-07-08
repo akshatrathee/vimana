@@ -141,7 +141,18 @@ function setSound(on) {
   if (on) {
     initAudioOnce();
     audioCtx.resume();
-    music.play().catch(() => {});
+    music.play().catch(() => {
+      // Autoplay blocked (no user gesture yet -- happens when the
+      // ?sound=1 kiosk URL is opened in a normal browser without
+      // Chromium's --autoplay-policy flag). Retry on first interaction.
+      window.addEventListener(
+        "pointerdown",
+        () => {
+          if (document.getElementById("sound-input").checked) setSound(true);
+        },
+        { once: true }
+      );
+    });
     playTransmission(); // one immediately, so the toggle feels alive
     scheduleNextTransmission();
   } else {

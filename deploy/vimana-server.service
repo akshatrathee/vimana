@@ -1,0 +1,25 @@
+# Systemd unit for the Vimana server (the Python backend + web page).
+# Only needed on the machine that HOSTS Vimana -- which can be the same
+# Raspberry Pi that displays it, or any other machine on your network.
+#
+# Install:
+#   sudo cp vimana-server.service /etc/systemd/system/
+#   (edit User= and WorkingDirectory= below to match your setup)
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now vimana-server
+
+[Unit]
+Description=Vimana aircraft radar server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/vimana
+ExecStart=/usr/bin/python3 server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

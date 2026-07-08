@@ -25,7 +25,8 @@ Developers run from source the same way — there is no build step. Static front
 1. Run `python server.py` and open http://localhost:8642.
 2. On first launch a setup screen asks for your home coordinates (right-click your house in Google Maps to copy them), an optional label, and up to two points of interest such as your nearest airport. Saving starts the radar.
 3. The HUD (top left) controls the radar radius in nautical miles, a constellations toggle, and a sound toggle (music + ATC chatter — browsers require this one click before audio can play).
-4. The ⚙ button reopens location settings; the fullscreen button is for projector/second-screen use.
+4. The ⚙ button opens settings: location, points of interest, display defaults (radius, audio, constellations), and a generated **Projector URL** — a clean, control-free link (`?display=1&...`) for kiosk screens. Add `&hud=0` to hide the info panel too.
+5. To run it on a Raspberry Pi ceiling projector, see [deploy/README.md](deploy/README.md) for the kiosk files and step-by-step setup.
 
 Planes are colored by direction: green is heading toward you, red away, amber crossing. Low traffic (below 12,000 ft) gets full detail cards, mid-altitude gets callsign only, and cruise traffic renders as a dim silhouette — matching what you can actually see from the ground. Aircraft on the ground or below 500 ft are hidden.
 
