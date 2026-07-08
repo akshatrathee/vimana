@@ -166,13 +166,48 @@ function drawRings(radiusNm) {
   renderPois();
 }
 
-/* Runway heading -> two-digit designator pair, e.g. 87deg -> "09/27".
-   Standard convention: number = heading/10 rounded, 0 becomes 36. */
+/*
+ * Fallback only: heading -> two-digit designator pair, e.g. 87deg ->
+ * "09/27" (number = heading/10 rounded, 0 becomes 36). This is *not*
+ * used when a runway carries its own real-world label, because
+ * parallel runways (e.g. Delhi's 11R/29L and 11L/29R) can't be
+ * derived from a heading at all -- the L/R suffix flips between a
+ * strip's two ends depending on which direction you're approaching
+ * from, which is a real geographic fact about that specific airport,
+ * not something computable from a bearing number. Bare headings with
+ * no label (e.g. a quickly-entered airport with no parallel runways)
+ * still get a sensible auto-derived designator here.
+ */
 function runwayDesignator(headingDeg) {
   const n1 = Math.round(headingDeg / 10) % 36 || 36;
   const n2 = Math.round(((headingDeg + 180) % 360) / 10) % 36 || 36;
   const pad = (n) => String(n).padStart(2, "0");
   return `${pad(n1)}/${pad(n2)}`;
+}
+
+/* Runway text field format: comma-separated tokens, each either a
+   bare heading ("87") or "LABEL@heading" ("11R/29L@111") when the
+   real designator needs to be given explicitly (see runwayDesignator
+   above for why that's unavoidable for parallel runways). */
+function parseRunwaySpec(str) {
+  return str
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((token) => {
+      if (token.includes("@")) {
+        const [label, headingStr] = token.split("@");
+        const heading = parseFloat(headingStr);
+        return isFinite(heading) ? { heading, label: label.trim() } : null;
+      }
+      const heading = parseFloat(token);
+      return isFinite(heading) ? { heading, label: null } : null;
+    })
+    .filter(Boolean);
+}
+
+function formatRunwaySpec(runways) {
+  return (runways || []).map((r) => (r.label ? `${r.label}@${r.heading}` : `${r.heading}`)).join(", ");
 }
 
 /* Airport POIs draw their actual runways, oriented at their real
@@ -184,15 +219,34 @@ function poiIconSvg(poi) {
   const color = { airport: "#4fa8ff", personal: "#c9a8ff", landmark: "#a8cfe8" }[poi.type] || "#a8cfe8";
 
   if (poi.type === "airport") {
-    const runways = poi.runways && poi.runways.length ? poi.runways : [90];
-    const halfLen = 10;
+    const runways = poi.runways && poi.runways.length ? poi.runways : [{ heading: 90, label: null }];
+    const halfLen = 9;
+
+    // Parallel runways (same heading, e.g. Delhi's 11R/29L + 11L/29R)
+    // share a heading group and get offset sideways so they render as
+    // two distinct strips, matching the real layout, instead of one
+    // line drawn twice on top of itself.
+    const groups = new Map();
+    runways.forEach((rw) => {
+      const key = Math.round(rw.heading);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(rw);
+    });
+
     let lines = "";
-    runways.forEach((heading) => {
-      const rad = (heading * Math.PI) / 180;
-      const dx = Math.sin(rad) * halfLen;
-      const dy = -Math.cos(rad) * halfLen;
-      lines += `<line x1="${(12 - dx).toFixed(1)}" y1="${(12 - dy).toFixed(1)}" x2="${(12 + dx).toFixed(1)}" y2="${(12 + dy).toFixed(1)}" stroke="${color}" stroke-width="2.2" stroke-linecap="round"/>`;
-      lines += `<line x1="${(12 - dx).toFixed(1)}" y1="${(12 - dy).toFixed(1)}" x2="${(12 + dx).toFixed(1)}" y2="${(12 + dy).toFixed(1)}" stroke="#0a0a0a" stroke-width="0.6" stroke-dasharray="1.4,1.4" opacity="0.8"/>`;
+    groups.forEach((group) => {
+      const rad = (group[0].heading * Math.PI) / 180;
+      const dx = Math.sin(rad), dy = -Math.cos(rad);
+      const perpDx = Math.cos(rad), perpDy = Math.sin(rad);
+      const spacing = 2.4;
+      group.forEach((rw, i) => {
+        const offset = (i - (group.length - 1) / 2) * spacing;
+        const cx = 12 + perpDx * offset, cy = 12 + perpDy * offset;
+        const x1 = (cx - dx * halfLen).toFixed(1), y1 = (cy - dy * halfLen).toFixed(1);
+        const x2 = (cx + dx * halfLen).toFixed(1), y2 = (cy + dy * halfLen).toFixed(1);
+        lines += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/>`;
+        lines += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#0a0a0a" stroke-width="0.5" stroke-dasharray="1.2,1.2" opacity="0.8"/>`;
+      });
     });
     return `<svg class="poi-icon" viewBox="0 0 24 24" style="color:${color}">${lines}<circle cx="12" cy="12" r="1.3" fill="${color}"/></svg>`;
   }
@@ -225,7 +279,7 @@ function renderPois() {
     const pos = polarToPixels(dst, brg);
     const sublabel =
       p.type === "airport" && p.runways && p.runways.length
-        ? `<div class="poi-sublabel">${p.runways.map(runwayDesignator).join(" · ")}</div>`
+        ? `<div class="poi-sublabel">${p.runways.map((r) => r.label || runwayDesignator(r.heading)).join(" · ")}</div>`
         : "";
     return `<div class="poi" style="left:${pos.x}px;top:${pos.y}px">
       ${poiIconSvg(p)}
@@ -651,7 +705,7 @@ function openSetup(cfg, firstRun) {
     val(`setup-poi${n}-label`, p.label);
     val(`setup-poi${n}-lat`, p.lat);
     val(`setup-poi${n}-lon`, p.lon);
-    val(`setup-poi${n}-runways`, (p.runways || []).join(", "));
+    val(`setup-poi${n}-runways`, formatRunwaySpec(p.runways));
     if (n === 2) document.getElementById("setup-poi2-type").value = p.type || "landmark";
   });
   val("setup-radius", cfg.radius_nm ?? 40);
@@ -724,12 +778,6 @@ async function saveSetup() {
     return;
   }
 
-  const parseRunways = (str) =>
-    str
-      .split(",")
-      .map((s) => parseFloat(s.trim()))
-      .filter((n) => isFinite(n));
-
   const poi = [];
   for (const n of [1, 2]) {
     const plat = parseFloat(get(`setup-poi${n}-lat`));
@@ -737,7 +785,7 @@ async function saveSetup() {
     if (!isFinite(plat) || !isFinite(plon)) continue;
     const type = n === 1 ? "airport" : document.getElementById("setup-poi2-type").value;
     const entry = { label: get(`setup-poi${n}-label`), lat: plat, lon: plon, type };
-    if (type === "airport") entry.runways = parseRunways(get(`setup-poi${n}-runways`));
+    if (type === "airport") entry.runways = parseRunwaySpec(get(`setup-poi${n}-runways`));
     poi.push(entry);
   }
 

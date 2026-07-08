@@ -55,10 +55,10 @@
         <label>Latitude <input type="text" id="setup-poi1-lat" inputmode="decimal"></label>
         <label>Longitude <input type="text" id="setup-poi1-lon" inputmode="decimal"></label>
       </div>
-      <label>Runway headings, degrees magnetic, comma-separated
-        <input type="text" id="setup-poi1-runways" placeholder="e.g. 87, 102, 111">
+      <label>Runways, comma-separated
+        <input type="text" id="setup-poi1-runways" placeholder="e.g. 87, 101, 11R/29L@111, 11L/29R@111">
       </label>
-      <p class="setup-hint">One number per physical strip (not per direction — 09/27 is one runway, enter just 87 or 267, either end works). Look these up on SkyVector or Wikipedia for your airport. Leave blank for a plain marker with no runway lines.</p>
+      <p class="setup-hint">One entry per physical strip (not per direction — 09/27 is one strip, enter just 87 or 267, either end works). A bare heading auto-labels itself ("87" &rarr; "09/27"); if your airport has parallel runways sharing a heading (like Delhi's 11R/29L and 11L/29R), auto-labeling can't get the L/R suffix right — give the real designator explicitly as <code>LABEL@heading</code> instead, e.g. <code>11R/29L@111</code>. Look these up on SkyVector or Wikipedia. Leave blank for a plain marker with no runway lines.</p>
     </fieldset>
 
     <fieldset>
@@ -75,8 +75,8 @@
           <option value="airport">Airport</option>
         </select>
       </label>
-      <label>Runway headings, degrees magnetic, comma-separated <span class="optional">(only used if type is Airport)</span>
-        <input type="text" id="setup-poi2-runways" placeholder="e.g. 87, 102, 111">
+      <label>Runways, comma-separated <span class="optional">(only used if type is Airport — see hint above for format)</span>
+        <input type="text" id="setup-poi2-runways" placeholder="e.g. 87, 101, 11R/29L@111, 11L/29R@111">
       </label>
     </fieldset>
 

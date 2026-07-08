@@ -361,12 +361,19 @@ class Handler(SimpleHTTPRequestHandler):
 
             entry = {"label": str(poi.get("label", ""))[:60], "lat": plat, "lon": plon, "type": poi_type}
             if poi_type == "airport":
+                # label is optional -- the client auto-derives a
+                # designator from heading alone when it's absent, but
+                # can't do that correctly for parallel runways (e.g.
+                # Delhi's 11R/29L + 11L/29R), where the real-world
+                # designator has to be given explicitly.
                 runways = []
-                for heading in (poi.get("runways") or [])[:6]:
+                for rw in (poi.get("runways") or [])[:6]:
                     try:
-                        runways.append(round(float(heading) % 360, 1))
-                    except (TypeError, ValueError):
+                        heading = round(float(rw["heading"]) % 360, 1)
+                    except (KeyError, TypeError, ValueError):
                         continue
+                    label = str(rw.get("label") or "")[:12].strip() or None
+                    runways.append({"heading": heading, "label": label})
                 entry["runways"] = runways
             pois.append(entry)
 

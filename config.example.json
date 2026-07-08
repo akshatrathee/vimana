@@ -10,7 +10,12 @@
       "lat": 37.6213,
       "lon": -122.379,
       "type": "airport",
-      "runways": [10, 100]
+      "runways": [
+        {"heading": 10, "label": "01L/19R"},
+        {"heading": 10, "label": "01R/19L"},
+        {"heading": 100, "label": "10L/28R"},
+        {"heading": 100, "label": "10R/28L"}
+      ]
     },
     {
       "label": "Golden Gate Bridge",
