@@ -157,6 +157,6 @@ only affects your FR24 account, not what shows on your radar.
 - Visual concept inspired by [Skylight](https://skylightceiling.com/) by cpaczek — this is an independent, from-scratch implementation.
 - Music and vibe by the Game [The Crust](https://store.steampowered.com/app/1465470/The_Crust/) by Veom Studios and the [Crust OST](https://store.steampowered.com/app/2293920/The_Crust_Complete_Soundtrack_Pack/)
 - Aircraft data: [adsb.lol](https://adsb.lol), [adsb.fi](https://adsb.fi), [airplanes.live](https://airplanes.live). Route data: [adsbdb.com](https://adsbdb.com). All free community services — consider feeding them if you get a receiver.
-- Background video, music track (`Skybound.mp3`), and ATC voice clips are AI-generated for this project. Music and voice clips are generated using higgsfield (Chatter is 3 simulated chatters overlayed over the instrumental music. The music is oechestrated to the style of interstellar
+- Background image, music track (`Skybound.mp3`), and ATC voice clips are AI-generated for this project. Music and voice clips are generated using higgsfield (Chatter is 3 simulated chatters overlayed over the instrumental music. The music is oechestrated to the style of interstellar
 
 Licensed under the Apache License 2.0 — see [LICENSE](LICENSE).

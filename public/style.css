@@ -24,20 +24,21 @@ html, body {
   overflow: hidden;
 }
 
-#bg-video {
+#bg-image {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  background: url("assets/bg.jpg") center center / cover no-repeat;
   z-index: -2;
-  /* The generated clip is already near-black; lift it slightly so the
-     drifting haze/star motion is actually perceptible behind the UI. */
+  /* A static frame from the original render -- the video's motion was
+     subtle enough that a still costs zero decode/CPU/RAM for the same
+     look, which matters on low-RAM kiosk devices (Pi Zero 2 W etc). */
   filter: brightness(1.35) saturate(1.15);
 }
 
-/* Light vignette over the video so HUD text and plane labels stay
-   legible at the edges without killing the motion in the middle. */
+/* Light vignette over the background so HUD text and plane labels
+   stay legible at the edges without flattening the middle. */
 #starfield::before {
   content: "";
   position: absolute;
