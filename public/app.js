@@ -161,9 +161,56 @@ function drawRings(radiusNm) {
   renderPois();
 }
 
-/* Fixed points of interest (from config.json) -- the airport gets a
-   crossed-runway glyph so the cluster of ground traffic around it
-   reads as "airport", the way FR24's airport pin anchors the scene. */
+/* Runway heading -> two-digit designator pair, e.g. 87deg -> "09/27".
+   Standard convention: number = heading/10 rounded, 0 becomes 36. */
+function runwayDesignator(headingDeg) {
+  const n1 = Math.round(headingDeg / 10) % 36 || 36;
+  const n2 = Math.round(((headingDeg + 180) % 360) / 10) % 36 || 36;
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(n1)}/${pad(n2)}`;
+}
+
+/* Airport POIs draw their actual runways, oriented at their real
+   compass headings relative to the POI point -- not to true relative
+   scale (a real runway is ~1-2nm long, which would be sub-pixel at
+   most radar zoom levels), but correctly oriented, so the layout
+   reads as "this specific airport" rather than a generic pin. */
+function poiIconSvg(poi) {
+  const color = { airport: "#4fa8ff", personal: "#c9a8ff", landmark: "#a8cfe8" }[poi.type] || "#a8cfe8";
+
+  if (poi.type === "airport") {
+    const runways = poi.runways && poi.runways.length ? poi.runways : [90];
+    const halfLen = 10;
+    let lines = "";
+    runways.forEach((heading) => {
+      const rad = (heading * Math.PI) / 180;
+      const dx = Math.sin(rad) * halfLen;
+      const dy = -Math.cos(rad) * halfLen;
+      lines += `<line x1="${(12 - dx).toFixed(1)}" y1="${(12 - dy).toFixed(1)}" x2="${(12 + dx).toFixed(1)}" y2="${(12 + dy).toFixed(1)}" stroke="${color}" stroke-width="2.2" stroke-linecap="round"/>`;
+      lines += `<line x1="${(12 - dx).toFixed(1)}" y1="${(12 - dy).toFixed(1)}" x2="${(12 + dx).toFixed(1)}" y2="${(12 + dy).toFixed(1)}" stroke="#0a0a0a" stroke-width="0.6" stroke-dasharray="1.4,1.4" opacity="0.8"/>`;
+    });
+    return `<svg class="poi-icon" viewBox="0 0 24 24" style="color:${color}">${lines}<circle cx="12" cy="12" r="1.3" fill="${color}"/></svg>`;
+  }
+
+  if (poi.type === "personal") {
+    // Small house silhouette -- visually distinct from the pin used
+    // for generic landmarks, and from home's own green dot marker.
+    return `<svg class="poi-icon" viewBox="0 0 24 24" style="color:${color}">
+      <polygon points="12,3 20.5,10.5 3.5,10.5" fill="${color}"/>
+      <rect x="6" y="10.5" width="12" height="9.5" fill="${color}"/>
+      <rect x="10.3" y="14" width="3.4" height="6" fill="#0a0a0a"/>
+    </svg>`;
+  }
+
+  // landmark: classic map-pin teardrop
+  return `<svg class="poi-icon" viewBox="0 0 24 24" style="color:${color}">
+    <path d="M12 2 C7.5 2 4 5.5 4 10 C4 16 12 22 12 22 C12 22 20 16 20 10 C20 5.5 16.5 2 12 2 Z" fill="${color}"/>
+    <circle cx="12" cy="10" r="3" fill="#0a0a0a"/>
+  </svg>`;
+}
+
+/* Fixed points of interest (from config.json). POI 1 is always an
+   airport; POI 2 can be an airport, a landmark, or a personal point. */
 function renderPois() {
   const el = document.getElementById("pois");
   el.innerHTML = POIS.map((p) => {
@@ -171,14 +218,14 @@ function renderPois() {
     if (dst > RADIUS_NM) return "";
     const brg = bearingDeg(HOME_LAT, HOME_LON, p.lat, p.lon);
     const pos = polarToPixels(dst, brg);
+    const sublabel =
+      p.type === "airport" && p.runways && p.runways.length
+        ? `<div class="poi-sublabel">${p.runways.map(runwayDesignator).join(" · ")}</div>`
+        : "";
     return `<div class="poi" style="left:${pos.x}px;top:${pos.y}px">
-      <svg class="poi-icon" viewBox="0 0 24 24">
-        <g fill="#a8cfe8">
-          <rect x="11.1" y="2" width="1.8" height="20" rx="0.9" transform="rotate(14 12 12)"/>
-          <rect x="11.1" y="5" width="1.8" height="14" rx="0.9" transform="rotate(-62 12 12)"/>
-        </g>
-      </svg>
+      ${poiIconSvg(p)}
       <div class="poi-label">${p.label}</div>
+      ${sublabel}
     </div>`;
   }).join("");
 }
@@ -578,9 +625,12 @@ function openSetup(cfg, firstRun) {
   val("setup-home-lat", cfg.home_lat);
   val("setup-home-lon", cfg.home_lon);
   (cfg.poi || []).slice(0, 2).forEach((p, i) => {
-    val(`setup-poi${i + 1}-label`, p.label);
-    val(`setup-poi${i + 1}-lat`, p.lat);
-    val(`setup-poi${i + 1}-lon`, p.lon);
+    const n = i + 1;
+    val(`setup-poi${n}-label`, p.label);
+    val(`setup-poi${n}-lat`, p.lat);
+    val(`setup-poi${n}-lon`, p.lon);
+    val(`setup-poi${n}-runways`, (p.runways || []).join(", "));
+    if (n === 2) document.getElementById("setup-poi2-type").value = p.type || "landmark";
   });
   val("setup-radius", cfg.radius_nm ?? 40);
   document.getElementById("setup-sound").checked = !!cfg.sound_enabled;
@@ -605,6 +655,24 @@ function updateProjectorUrl() {
   const fullscreen = document.getElementById("setup-fullscreen").checked ? 1 : 0;
   const url = `http://${host}/?radius=${radius}&sound=${sound}&constellations=${consts}&hud=${hud}&fullscreen=${fullscreen}`;
   document.getElementById("projector-url").value = url;
+  renderProjectorQr(url);
+}
+
+/* qrcode() comes from vendor/qrcode.js (Kazuhiko Arase's public-domain
+   QR encoder -- see README credits). Type 0 = auto-pick the smallest
+   version that fits; error correction M is a reasonable middle ground
+   for a URL this length. White background/black modules regardless of
+   app theme, since a QR scanner needs the contrast, not the aesthetic. */
+function renderProjectorQr(url) {
+  const el = document.getElementById("projector-qr");
+  try {
+    const qr = qrcode(0, "M");
+    qr.addData(url);
+    qr.make();
+    el.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 8, scalable: true });
+  } catch (err) {
+    el.innerHTML = "";
+  }
 }
 
 function copyProjectorUrl() {
@@ -634,13 +702,21 @@ async function saveSetup() {
     return;
   }
 
+  const parseRunways = (str) =>
+    str
+      .split(",")
+      .map((s) => parseFloat(s.trim()))
+      .filter((n) => isFinite(n));
+
   const poi = [];
   for (const n of [1, 2]) {
     const plat = parseFloat(get(`setup-poi${n}-lat`));
     const plon = parseFloat(get(`setup-poi${n}-lon`));
-    if (isFinite(plat) && isFinite(plon)) {
-      poi.push({ label: get(`setup-poi${n}-label`), lat: plat, lon: plon });
-    }
+    if (!isFinite(plat) || !isFinite(plon)) continue;
+    const type = n === 1 ? "airport" : document.getElementById("setup-poi2-type").value;
+    const entry = { label: get(`setup-poi${n}-label`), lat: plat, lon: plon, type };
+    if (type === "airport") entry.runways = parseRunways(get(`setup-poi${n}-runways`));
+    poi.push(entry);
   }
 
   const res = await fetch("/api/config", {
@@ -730,8 +806,13 @@ async function init() {
   const soundOn = soundParam != null ? soundParam === "1" : !!cfg.sound_enabled;
   if (soundOn) setSound(true);
 
+  // The plain home URL (no query string) always attempts fullscreen --
+  // this is a kiosk display, not a page anyone browses normally. The
+  // "Start fullscreen" setting still matters for the generated
+  // Projector URL, so a *different* device can be given &fullscreen=0
+  // explicitly if it shouldn't auto-fullscreen.
   const fsParam = URL_PARAMS.get("fullscreen");
-  const wantsFullscreen = fsParam != null ? fsParam === "1" : !!cfg.fullscreen_default;
+  const wantsFullscreen = fsParam != null ? fsParam === "1" : true;
   if (wantsFullscreen) {
     // Browsers require a user gesture for the Fullscreen API in most
     // configurations, so this best-effort attempt commonly gets

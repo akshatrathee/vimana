@@ -171,15 +171,21 @@ html, body {
   gap: 1px;
 }
 .poi-icon {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   opacity: 0.95;
-  filter: drop-shadow(0 0 5px rgba(168, 207, 232, 0.8));
+  filter: drop-shadow(0 0 5px currentColor);
 }
 .poi-label {
   font-size: calc(10px * var(--label-scale));
   letter-spacing: 0.14em;
   color: #a8cfe8;
+  white-space: nowrap;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
+}
+.poi-sublabel {
+  font-size: calc(9px * var(--label-scale));
+  color: rgba(168, 207, 232, 0.65);
   white-space: nowrap;
   text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
 }
@@ -361,7 +367,8 @@ html, body {
   color: var(--text-dim);
   margin-top: 6px;
 }
-#setup-panel input {
+#setup-panel input,
+#setup-panel select {
   display: block;
   width: 100%;
   margin-top: 3px;
@@ -413,6 +420,17 @@ html, body {
 }
 #setup-panel .url-row button:hover { background: rgba(140, 170, 200, 0.22); }
 #setup-panel code { color: #a8cfe8; font-size: 11px; }
+
+#projector-qr {
+  margin-top: 10px;
+  width: 120px;
+  height: 120px;
+  background: #fff;
+  border-radius: 4px;
+  padding: 6px;
+  box-sizing: border-box;
+}
+#projector-qr svg { width: 100%; height: 100%; display: block; }
 
 /* The info panel (clock/status/count) is hidden by default -- see
    default_settings.cfg's "hud" key, overridable with ?hud=0/1. The

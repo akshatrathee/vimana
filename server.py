@@ -345,14 +345,30 @@ class Handler(SimpleHTTPRequestHandler):
             return
 
         pois = []
-        for poi in (incoming.get("poi") or [])[:2]:  # setup UI allows up to 2
+        for i, poi in enumerate((incoming.get("poi") or [])[:2]):  # setup UI allows up to 2
             try:
                 plat, plon = float(poi["lat"]), float(poi["lon"])
                 if not (-90 <= plat <= 90 and -180 <= plon <= 180):
                     continue
-                pois.append({"label": str(poi.get("label", ""))[:60], "lat": plat, "lon": plon})
             except (KeyError, TypeError, ValueError):
                 continue
+
+            # POI 1 is always an airport (the UI enforces this too, but
+            # a hand-crafted request shouldn't be able to bypass it).
+            poi_type = "airport" if i == 0 else str(poi.get("type", "landmark"))
+            if poi_type not in ("airport", "landmark", "personal"):
+                poi_type = "landmark"
+
+            entry = {"label": str(poi.get("label", ""))[:60], "lat": plat, "lon": plon, "type": poi_type}
+            if poi_type == "airport":
+                runways = []
+                for heading in (poi.get("runways") or [])[:6]:
+                    try:
+                        runways.append(round(float(heading) % 360, 1))
+                    except (TypeError, ValueError):
+                        continue
+                entry["runways"] = runways
+            pois.append(entry)
 
         new_config = dict(CONFIG_DEFAULTS)
         new_config.update({

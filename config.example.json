@@ -8,7 +8,15 @@
     {
       "label": "SFO · San Francisco Intl",
       "lat": 37.6213,
-      "lon": -122.379
+      "lon": -122.379,
+      "type": "airport",
+      "runways": [10, 100]
+    },
+    {
+      "label": "Golden Gate Bridge",
+      "lat": 37.8199,
+      "lon": -122.4783,
+      "type": "landmark"
     }
   ]
 }

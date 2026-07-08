@@ -6,18 +6,23 @@
    silently retries on first click/tap. A kiosk Chromium can bypass
    this entirely with --autoplay-policy=no-user-gesture-required:
 
-   1. Music: assets/Skybound.mp3 on a gentle loop.
-   2. Sporadic "ATC radio": short AI-generated voice clips pushed
-      through a Web Audio radio chain (bandpass + soft clipping +
-      noise bed + squelch clicks), fired at random 25-75s intervals.
-      If the clips are missing, it falls back to static-only bursts. */
+   1. Music: assets/Skybound.mp3, engineered to loop with no audible
+      seam (the source file had a baked-in fade in/out; we trimmed to
+      its stable middle section and crossfaded tail into head so
+      native <audio> looping plays it as one continuous, perpetual
+      track rather than dipping to silence and restarting).
+   2. Sporadic "ATC radio": 10 short AI-generated voice clips, one
+      picked at random each time, pushed through a Web Audio radio
+      chain (bandpass + soft clipping + noise bed + squelch clicks),
+      fired at random 15-45s intervals. If the clips are missing, it
+      falls back to static-only bursts. */
 
 const MUSIC_URL = "assets/Skybound.mp3";
 const MUSIC_VOLUME = 0.3;
-const ATC_CLIPS = ["assets/atc/atc-1.mp3", "assets/atc/atc-2.mp3", "assets/atc/atc-3.mp3"];
+const ATC_CLIPS = Array.from({ length: 10 }, (_, i) => `assets/atc/atc-${i + 1}.mp3`);
 const ATC_VOLUME = 0.5;
-const ATC_MIN_GAP_MS = 25 * 1000;
-const ATC_MAX_GAP_MS = 75 * 1000;
+const ATC_MIN_GAP_MS = 15 * 1000;
+const ATC_MAX_GAP_MS = 45 * 1000;
 
 let audioCtx = null;
 let music = null;

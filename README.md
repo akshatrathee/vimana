@@ -4,7 +4,7 @@ Vimana ("flying palace" in the Sanskrit epics) is a self-hosted web page that sh
 
 It needs no receiver hardware and no API keys: aircraft positions come from three free community ADS-B networks (adsb.lol, adsb.fi, airplanes.live) merged together, and flight routes come from adsbdb.com. Inspired by the [Skylight](https://skylightceiling.com/) ceiling projector project; the code here is an independent implementation.
 
-Music is generated using higgsfield and suno (Chatter is 3 simulated chatters overlayed over the instrumental music. The music is oechestrated to the style of interstellar. The Crust game's OST was the vibe i was looking for.
+Music is generated using higgsfield and suno (Chatter is 10 simulated chatters overlayed over the instrumental music. The music is oechestrated to the style of interstellar. The Crust game's OST was the vibe i was looking for.
 
 ## How to install
 
@@ -23,9 +23,9 @@ Developers run from source the same way — there is no build step. Static front
 ## How to use
 
 1. Run `python server.py` and open http://localhost:8642.
-2. On first launch a setup screen asks for your home coordinates (right-click your house in Google Maps to copy them), an optional label, and up to two points of interest such as your nearest airport. Saving starts the radar.
-3. The page itself has no visible controls by default — that's intentional, so it's projector/kiosk-ready out of the box. Click the **⚙ gear icon** (bottom left, always present) to open settings: location, points of interest, and display defaults (radius, music/ATC audio, constellations, whether the info panel shows, whether it tries to start fullscreen). Saving reloads the page with the new defaults applied.
-4. The settings screen also has a generated **Projector URL**, for when a *different* display should use different values than your saved defaults (e.g. a second screen at a different radius) — put that URL on the other device instead of the plain one.
+2. On first launch a setup screen asks for your home coordinates (right-click your house in Google Maps to copy them), an optional label, and up to two points of interest. Point of interest 1 is always an airport — give it a name, coordinates, and (optionally) its runway headings in degrees magnetic, comma-separated (look these up on SkyVector or Wikipedia); it's drawn as actual runway lines at their real orientation relative to your house, not a generic pin. Point of interest 2 can be an airport (same runway field), a landmark, or a personal point — each gets a distinct icon. Saving starts the radar.
+3. The page itself has no visible controls by default except the info panel (clock/status/aircraft count) — that's intentional, so it's projector/kiosk-ready out of the box, while still showing at a glance that it's alive. Click the **⚙ gear icon** (bottom left, always present) to open settings: location, points of interest, and display defaults (radius, music/ATC audio, constellations, whether the info panel shows). Saving reloads the page with the new defaults applied. The page always attempts fullscreen on its own on load (most browsers require one click first — the fullscreen button is the reliable fallback).
+4. The settings screen also has a generated **Projector URL** with a QR code next to it — scan it with a phone to open that exact URL, or put it on a kiosk device. Use this when a *different* display should use different values than your saved defaults (e.g. a second screen at a different radius); the plain URL already carries your saved defaults, so most setups never need this.
 5. To run it on a Raspberry Pi ceiling projector, see [deploy/README.md](deploy/README.md) for the kiosk files and step-by-step setup.
 
 Planes are colored by direction: green is heading toward you, red away, amber crossing. Low traffic (below 12,000 ft) gets full detail cards, mid-altitude gets callsign only, and cruise traffic renders as a dim silhouette — matching what you can actually see from the ground. Aircraft on the ground or below 500 ft are hidden.
@@ -160,6 +160,7 @@ only affects your FR24 account, not what shows on your radar.
 - Visual concept inspired by [Skylight](https://skylightceiling.com/) by cpaczek — this is an independent, from-scratch implementation.
 - Music and vibe by the Game [The Crust](https://store.steampowered.com/app/1465470/The_Crust/) by Veom Studios and the [Crust OST](https://store.steampowered.com/app/2293920/The_Crust_Complete_Soundtrack_Pack/)
 - Aircraft data: [adsb.lol](https://adsb.lol), [adsb.fi](https://adsb.fi), [airplanes.live](https://airplanes.live). Route data: [adsbdb.com](https://adsbdb.com). All free community services — consider feeding them if you get a receiver.
-- Background image, music track (`Skybound.mp3`), and ATC voice clips are AI-generated for this project. Music and voice clips are generated using higgsfield (Chatter is 3 simulated chatters overlayed over the instrumental music. The music is oechestrated to the style of interstellar
+- Background image, music track (`Skybound.mp3`), and ATC voice clips are AI-generated for this project. Music and voice clips are generated using higgsfield (Chatter is 10 simulated transmissions overlayed over the instrumental music, one picked at random every 15-45s). The music is oechestrated to the style of interstellar
+- QR code generation (`public/vendor/qrcode.js`) vendors Kazuhiko Arase's public-domain [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator), MIT licensed — the reference implementation several other JS QR libraries wrap.
 
 Licensed under the Apache License 2.0 — see [LICENSE](LICENSE).

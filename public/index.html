@@ -48,12 +48,16 @@
     </fieldset>
 
     <fieldset>
-      <legend>Point of interest 1 <span class="optional">(optional, e.g. an airport)</span></legend>
+      <legend>Point of interest 1 <span class="optional">(optional — always an airport)</span></legend>
       <label>Label <input type="text" id="setup-poi1-label" placeholder="DEL · Indira Gandhi Intl" maxlength="60"></label>
       <div class="coord-row">
         <label>Latitude <input type="text" id="setup-poi1-lat" inputmode="decimal"></label>
         <label>Longitude <input type="text" id="setup-poi1-lon" inputmode="decimal"></label>
       </div>
+      <label>Runway headings, degrees magnetic, comma-separated
+        <input type="text" id="setup-poi1-runways" placeholder="e.g. 87, 102, 111">
+      </label>
+      <p class="setup-hint">One number per physical strip (not per direction — 09/27 is one runway, enter just 87 or 267, either end works). Look these up on SkyVector or Wikipedia for your airport. Leave blank for a plain marker with no runway lines.</p>
     </fieldset>
 
     <fieldset>
@@ -63,6 +67,16 @@
         <label>Latitude <input type="text" id="setup-poi2-lat" inputmode="decimal"></label>
         <label>Longitude <input type="text" id="setup-poi2-lon" inputmode="decimal"></label>
       </div>
+      <label>Type
+        <select id="setup-poi2-type">
+          <option value="landmark">Landmark</option>
+          <option value="personal">Personal point</option>
+          <option value="airport">Airport</option>
+        </select>
+      </label>
+      <label>Runway headings, degrees magnetic, comma-separated <span class="optional">(only used if type is Airport)</span>
+        <input type="text" id="setup-poi2-runways" placeholder="e.g. 87, 102, 111">
+      </label>
     </fieldset>
 
     <fieldset>
@@ -74,9 +88,9 @@
       </div>
       <div class="coord-row">
         <label class="check-label"><input type="checkbox" id="setup-hud"> Show info panel</label>
-        <label class="check-label"><input type="checkbox" id="setup-fullscreen"> Start fullscreen</label>
+        <label class="check-label"><input type="checkbox" id="setup-fullscreen"> Fullscreen (in Projector URL)</label>
       </div>
-      <p class="setup-hint">"Start fullscreen" is best-effort — most browsers block auto-fullscreen until you interact with the page at least once; the fullscreen button below always works as a fallback.</p>
+      <p class="setup-hint">This page always tries to open fullscreen on its own — most browsers require one interaction first, so the fullscreen button below is the reliable fallback. The checkbox here only sets the <code>&amp;fullscreen=</code> value baked into the Projector URL below, for a different display that might want it off.</p>
     </fieldset>
 
     <fieldset>
@@ -86,6 +100,7 @@
         <input type="text" id="projector-url" readonly>
         <button type="button" id="copy-url-btn" title="Copy">Copy</button>
       </div>
+      <div id="projector-qr" title="Scan with a phone to open this URL"></div>
     </fieldset>
 
     <div id="setup-error" class="hidden"></div>
@@ -96,6 +111,7 @@
   </div>
 </div>
 
+<script src="vendor/qrcode.js"></script>
 <script src="app.js"></script>
 <script src="audio.js"></script>
 </body>
