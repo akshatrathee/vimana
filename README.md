@@ -61,6 +61,97 @@ Verify: the page skips the setup screen and centers the radar on your home. (Wit
 
 Stop the server (Ctrl+C) and delete the project folder. Nothing is installed elsewhere — no packages, services, or registry entries. If you added a systemd unit or kiosk autostart entry on a Raspberry Pi yourself, remove those too.
 
+## Hardware upgrade: add your own ADS-B receiver
+
+Everything above runs on free data from other people's receivers, with zero
+hardware. This section is entirely optional: it covers plugging in your own
+RTL-SDR dongle so Vimana shows aircraft *you* received directly — lower
+latency, no dependency on community coverage in your area, and it keeps
+working if your internet drops (aircraft positions only; route/ETA lookups
+still need internet).
+
+**Does the receiver connect to the Pi or the server?** The server — whichever
+machine runs `server.py` (see [deploy/README.md](deploy/README.md) for the
+server vs. display/kiosk distinction). They can be the same device if it's
+well placed, but what actually decides this is antenna placement, not which
+Pi is "the Vimana one": put the receiver on whatever machine can route a
+coax cable to a window, attic, or roof with a clear view of the sky.
+
+### Hardware you need
+
+- An RTL-SDR USB dongle tuned for 1090MHz (e.g. RTL-SDR Blog V3, ~$30)
+- A 1090MHz ADS-B antenna (a basic 1/4-wave or a colinear for more range)
+- SMA coax cable and, if the dongle is far from the antenna, a USB extension
+  cable (RTL-SDR dongles are sensitive to USB3 interference — a 2.0 extension
+  moving it away from the Pi itself often helps)
+- Optional: an inline LNA (amplifier) or SAW filter if you're in a
+  high-interference area (near cell towers, airports with radar, etc.)
+
+### Software setup: the decoder
+
+Install `readsb` on the receiver/server machine — it's the program that
+owns the USB dongle, decodes raw ADS-B signals, and publishes them as JSON.
+
+```
+sudo bash -c "$(wget -qO - https://github.com/wiedehopf/adsb-scripts/raw/master/readsb-install.sh)"
+```
+
+This installs and starts `readsb` as a service, and serves a local map and
+JSON feed at `http://<receiver-ip>:8080`. Verify it's working: open that URL
+in a browser — you should see a map with any aircraft currently overhead.
+
+### Wiring it into Vimana
+
+`readsb`'s JSON output uses the same `"aircraft"` key that Vimana's merge
+logic already falls back to, and its URL needs no placeholders — so adding
+it as a fourth source is one line. Open `server.py` and extend
+`AIRCRAFT_SOURCES`:
+
+```python
+AIRCRAFT_SOURCES = [
+    ("adsb.lol", "https://api.adsb.lol/v2/point/{lat}/{lon}/{r}"),
+    ("adsb.fi", "https://opendata.adsb.fi/api/v2/lat/{lat}/lon/{lon}/dist/{r}"),
+    ("airplanes.live", "https://api.airplanes.live/v2/point/{lat}/{lon}/{r}"),
+    ("local-receiver", "http://localhost:8080/data/aircraft.json"),
+]
+```
+
+(Use the receiver machine's LAN IP instead of `localhost` if it's a
+different device from the one running `server.py`.) Restart `python
+server.py` to pick up the change.
+
+**Known caveat:** unlike the three community APIs, `readsb`'s feed isn't
+filtered by distance — it reports everything the antenna hears, which can
+be well past your configured radius on a good antenna. If you want it
+cropped to match, filter on `ac["dst"]` against `radius_nm` in
+`fetch_aircraft()`'s merge step in `server.py`.
+
+### Contributing to FlightRadar24 (get a free Business plan)
+
+Feeding your receiver's data to FlightRadar24 is separate from the step
+above — Vimana reads from your *local* decoder either way, so this part
+only affects your FR24 account, not what shows on your radar.
+
+1. Create an account at [flightradar24.com](https://www.flightradar24.com/)
+   and go to **Add your receiver** under Account → Share your data.
+2. Register your location to get a sharing key.
+3. Install `fr24feed` on the same machine running `readsb`:
+   ```
+   sudo bash -c "$(wget -qO - https://repo-feed.flightradar24.com/install_fr24_rpi.sh)"
+   ```
+4. When prompted, point it at your existing decoder instead of letting it
+   drive the SDR itself — `readsb` already owns the dongle, and also
+   publishes a Beast-format stream on port 30005 that feeder clients like
+   `fr24feed` are designed to read from, so one dongle can feed multiple
+   aggregators (FR24, FlightAware, ADS-B Exchange, etc.) simultaneously
+   without contention. Give the FR24 setup script `localhost:30005` as the
+   Beast input when it asks.
+5. Check **Account → Statistics** on the FR24 website after your feeder
+   shows as connected. FR24 grants active feeders free access to a
+   Business-tier subscription as a thank-you; the exact name and perks are
+   set by FR24 and may change, so treat this as "check your account page,"
+   not a fixed guarantee.
+
 ## Credits
 
 - Visual concept inspired by [Skylight](https://skylightceiling.com/) by cpaczek — this is an independent, from-scratch implementation.
