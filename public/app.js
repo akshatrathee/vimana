@@ -14,14 +14,12 @@ let radarRadiusPx = 0;
 let centerX = 0, centerY = 0;
 let lastList = [];
 
-const markers = new Map(); // hex -> { el, direction }
+const markers = new Map(); // hex -> { el, direction, data }
 const routeCache = new Map(); // callsign -> route object | null
-const trails = new Map(); // hex -> [{lat,lon}, ...] oldest first, capped
 
 const MI_PER_NM = 1.15078;
 const EARTH_RADIUS_MI = 3958.8;
 const EARTH_RADIUS_NM = 3440.1;
-const TRAIL_LENGTH = 10;
 
 function computeGeometry() {
   centerX = window.innerWidth / 2;
@@ -490,6 +488,7 @@ function renderPlane(ac, proximity, direction, visibility, route) {
     markers.set(ac.hex, entry);
   }
   entry.direction = direction;
+  entry.data = ac;
 
   // Text legibility tracks urgency: a plane near the epicenter gets a
   // fully opaque card, one out at the rim fades to a whisper (but never
@@ -507,41 +506,59 @@ function renderPlane(ac, proximity, direction, visibility, route) {
   `;
 }
 
-function recordTrail(ac) {
-  let history = trails.get(ac.hex);
-  if (!history) {
-    history = [];
-    trails.set(ac.hex, history);
-  }
-  const last = history[history.length - 1];
-  if (!last || last.lat !== ac.lat || last.lon !== ac.lon) {
-    history.push({ lat: ac.lat, lon: ac.lon });
-    if (history.length > TRAIL_LENGTH) history.shift();
-  }
-}
-
-/* Trails are thin fading streaks (like the reference's motion blur),
-   drawn as SVG line segments from oldest fix to the current position,
-   opacity ramping up toward the plane. */
+/*
+ * Trails used to be drawn by connecting each aircraft's last few
+ * reported lat/lon fixes across polls. That broke in a specific way:
+ * we merge three independent community ADS-B feeds by picking
+ * whichever has the freshest report each poll, but "freshest this
+ * poll" isn't guaranteed monotonic against "freshest last poll" --
+ * different receivers lag independently. The two positions chained
+ * together could occasionally be effectively out of chronological
+ * order, which pointed a trail segment in the exact reverse of the
+ * aircraft's real heading (confirmed empirically: two aircraft out of
+ * 61 had a trail bearing ~180 degrees off their reported track).
+ *
+ * Fixing that class of bug outright, rather than just reducing its
+ * odds: don't derive direction from a chain of cross-poll position
+ * deltas at all. Draw a short fading tail anchored at the plane's own
+ * current pixel position, pointed along the reciprocal of its own
+ * broadcast track -- a value the aircraft reports about itself each
+ * poll, immune to our merge-timing entirely. This can't point the
+ * wrong way, and can't visually separate from the plane, because it's
+ * drawn from the exact same anchor point as the glyph itself.
+ */
 function renderTrails() {
   const el = document.getElementById("trails");
   let segments = "";
-  for (const [hex, history] of trails) {
-    const entry = markers.get(hex);
-    if (!entry || history.length < 2) continue;
+  for (const [hex, entry] of markers) {
+    const ac = entry.data;
+    const track = ac?.track ?? ac?.true_heading;
+    if (!ac || track == null || ac.dst == null || ac.dir == null) continue;
+
     const hue = DIRECTION_HUE[entry.direction] ?? DIRECTION_HUE.transit;
-    const pts = history.map((p) => {
-      const dst = distanceNm(HOME_LAT, HOME_LON, p.lat, p.lon);
-      const brg = bearingDeg(HOME_LAT, HOME_LON, p.lat, p.lon);
-      return polarToPixels(dst, brg);
-    });
-    for (let i = 1; i < pts.length; i++) {
-      const age = pts.length - 1 - i; // 0 = segment touching the plane
-      const opacity = Math.max(0.03, 0.3 - age * 0.033);
-      segments += `<line x1="${pts[i - 1].x.toFixed(1)}" y1="${pts[i - 1].y.toFixed(1)}"
-        x2="${pts[i].x.toFixed(1)}" y2="${pts[i].y.toFixed(1)}"
+    const pos = polarToPixels(ac.dst, ac.dir); // same anchor as the plane glyph
+    const rad = ((track + 180) * Math.PI) / 180; // reciprocal of heading = behind
+    const dx = Math.sin(rad);
+    const dy = -Math.cos(rad);
+    // Faster aircraft get a slightly longer tail -- more "motion", not
+    // a literal distance-per-second scale.
+    const gs = ac.gs ?? 150;
+    const stepLen = Math.max(3, Math.min(8, gs / 40));
+
+    let x = pos.x, y = pos.y;
+    for (let step = 0; step < 5; step++) {
+      // dx/dy is already the screen-space vector for bearing (track+180)
+      // -- i.e. "behind" -- so each step must ADD it to keep walking
+      // further behind; subtracting would walk back toward "ahead".
+      const nx = x + dx * stepLen;
+      const ny = y + dy * stepLen;
+      const opacity = Math.max(0.03, 0.28 - step * 0.05);
+      segments += `<line x1="${x.toFixed(1)}" y1="${y.toFixed(1)}"
+        x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}"
         stroke="hsl(${hue},90%,62%)" stroke-opacity="${opacity.toFixed(2)}"
         stroke-width="1.4" stroke-linecap="round"/>`;
+      x = nx;
+      y = ny;
     }
   }
   el.innerHTML = `<svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible">${segments}</svg>`;
@@ -558,7 +575,6 @@ function updateAircraft(list) {
     const visibility = classifyVisibility(ac);
     const callsign = (ac.flight || "").trim();
     const route = callsign ? routeCache.get(callsign) : null;
-    recordTrail(ac);
     renderPlane(ac, proximity, direction, visibility, route);
   });
 
@@ -566,7 +582,6 @@ function updateAircraft(list) {
     if (!seen.has(hex)) {
       entry.el.remove();
       markers.delete(hex);
-      trails.delete(hex);
     }
   }
 

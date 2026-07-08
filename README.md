@@ -158,7 +158,7 @@ only affects your FR24 account, not what shows on your radar.
 ## Credits
 
 - Visual concept inspired by [Skylight](https://skylightceiling.com/) by cpaczek — this is an independent, from-scratch implementation.
-- Music and vibe by the Game [The Crust](https://store.steampowered.com/app/1465470/The_Crust/) by Veom Studios and the [Crust OST](https://store.steampowered.com/app/2293920/The_Crust_Complete_Soundtrack_Pack/)
+- The music's style was prompted toward the vibe of [The Crust](https://store.steampowered.com/app/1465470/The_Crust/)'s OST (Veom Studios) as a thematic reference only — no audio from that soundtrack was used, sampled, or is otherwise part of this project. `Skybound.mp3` is fully AI-generated, see below.
 - Aircraft data: [adsb.lol](https://adsb.lol), [adsb.fi](https://adsb.fi), [airplanes.live](https://airplanes.live). Route data: [adsbdb.com](https://adsbdb.com). All free community services — consider feeding them if you get a receiver.
 - Background image, music track (`Skybound.mp3`), and ATC voice clips are AI-generated for this project. Music and voice clips are generated using higgsfield (Chatter is 13 simulated transmissions overlayed over the instrumental music, one picked at random every 15-45s). The music is oechestrated to the style of interstellar
 - QR code generation (`public/vendor/qrcode.js`) vendors Kazuhiko Arase's public-domain [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator), MIT licensed — the reference implementation several other JS QR libraries wrap.
