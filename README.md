@@ -32,9 +32,9 @@ Planes are colored by direction: green is heading toward you, red away, amber cr
 
 ## How to configure / update
 
-Settings are split across two files in the project root, both created by the in-app setup screen and both gitignored (their committed `.example` counterparts document the format):
+Settings are split across two files in the project root, both created by the in-app setup screen and both gitignored (they hold your personal location — never commit them):
 
-- `config.json` — your location: home coordinates, label, points of interest, poll interval. Contains personal data; never commit this.
+- `config.json` — your location: home coordinates, label, points of interest, poll interval. `config.example.json` is committed with the project author's own real, working config (a generic residential Delhi NCR location with Indira Gandhi Intl as a point of interest) — just `cp config.example.json config.json` to start from it as-is, no setup screen needed, or run the in-app setup for your own location instead.
 - `default_settings.cfg` — display preferences applied whenever the page loads without a URL override: `radius_nm`, `sound`, `constellations`, `hud` (info panel visibility), `fullscreen`. Not sensitive, but still per-deployment. Unlike `config.json`, this one is plain `key=value` text specifically so you can hand-edit it directly — helpful on a headless kiosk device where clicking through the gear icon isn't convenient. Changes to this file take effect on the next page load; changes made via the gear icon reload automatically.
 
 Tunable constants sit at the top of `public/app.js` (altitude visibility thresholds, trail length) and `public/audio.js` (volumes, ATC chatter frequency).
