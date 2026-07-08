@@ -15,18 +15,25 @@ mouse, no toggles. Works on a Pi 4, Pi 5, Pi 3, or Pi Zero 2 W.
 
 ## Step 0 — Get your projector URL
 
-On any computer, open the Vimana page, click the ⚙ button, set your
-preferred radius / sound / constellations under **Display defaults**, click
-**Start tracking** to save, then copy the **Projector URL**. It looks like:
+The page has no visible controls by default (that's the point — it's kiosk-
+ready out of the box), driven by `default_settings.cfg` in the project root.
+For a Pi with the same settings as your main display, the plain server URL
+(`http://192.168.1.50:8642/`) is all you need — skip to Step 1.
+
+If this *specific* Pi should use different values (a different radius, or
+audio off on a silent display), open the Vimana page anywhere, click the ⚙
+button, set your preferred radius / sound / constellations / info panel /
+fullscreen under **Display defaults**, click **Start tracking** to save
+(this becomes the new site-wide default), then copy the **Projector URL** —
+it bakes those same values into query parameters that override the default
+for that one link:
 
 ```
-http://192.168.1.50:8642/?display=1&radius=40&sound=1&constellations=0
+http://192.168.1.50:8642/?radius=40&sound=1&constellations=0&hud=0&fullscreen=1
 ```
 
 The URL already uses the server's LAN IP. Tip: give the server machine a
 static IP (or DHCP reservation) in your router so this URL never goes stale.
-Optional extra: add `&hud=0` to also hide the clock/status panel for a
-completely clean ceiling projection.
 
 ## Step 1 — Flash the Pi
 
@@ -113,9 +120,10 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now vimana-server
 ```
 
-Then set the URL in `/etc/vimana-kiosk.conf` to
-`http://localhost:8642/?display=1&...`. Do the one-time location setup by
-browsing to `http://<pi-hostname>.local:8642` from your computer.
+Then set the URL in `/etc/vimana-kiosk.conf` to `http://localhost:8642/`
+(or your projector URL from Step 0, if this Pi needs different settings).
+Do the one-time location setup by browsing to
+`http://<pi-hostname>.local:8642` from your computer.
 
 ## Optional — Rotate the image (ceiling projectors)
 

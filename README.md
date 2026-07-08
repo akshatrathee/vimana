@@ -24,15 +24,18 @@ Developers run from source the same way — there is no build step. Static front
 
 1. Run `python server.py` and open http://localhost:8642.
 2. On first launch a setup screen asks for your home coordinates (right-click your house in Google Maps to copy them), an optional label, and up to two points of interest such as your nearest airport. Saving starts the radar.
-3. The HUD (top left) controls the radar radius in nautical miles, a constellations toggle, and a sound toggle (music + ATC chatter — browsers require this one click before audio can play).
-4. The ⚙ button opens settings: location, points of interest, display defaults (radius, audio, constellations), and a generated **Projector URL** — a clean, control-free link (`?display=1&...`) for kiosk screens. Add `&hud=0` to hide the info panel too.
+3. The page itself has no visible controls by default — that's intentional, so it's projector/kiosk-ready out of the box. Click the **⚙ gear icon** (bottom left, always present) to open settings: location, points of interest, and display defaults (radius, music/ATC audio, constellations, whether the info panel shows, whether it tries to start fullscreen). Saving reloads the page with the new defaults applied.
+4. The settings screen also has a generated **Projector URL**, for when a *different* display should use different values than your saved defaults (e.g. a second screen at a different radius) — put that URL on the other device instead of the plain one.
 5. To run it on a Raspberry Pi ceiling projector, see [deploy/README.md](deploy/README.md) for the kiosk files and step-by-step setup.
 
 Planes are colored by direction: green is heading toward you, red away, amber crossing. Low traffic (below 12,000 ft) gets full detail cards, mid-altitude gets callsign only, and cruise traffic renders as a dim silhouette — matching what you can actually see from the ground. Aircraft on the ground or below 500 ft are hidden.
 
 ## How to configure / update
 
-All settings live in `config.json` in the project root, created by the in-app setup screen — you normally never edit it by hand. `config.example.json` documents the format (radius, poll interval, points of interest). `config.json` is gitignored because it contains your home coordinates; keep it out of public repos.
+Settings are split across two files in the project root, both created by the in-app setup screen and both gitignored (their committed `.example` counterparts document the format):
+
+- `config.json` — your location: home coordinates, label, points of interest, poll interval. Contains personal data; never commit this.
+- `default_settings.cfg` — display preferences applied whenever the page loads without a URL override: `radius_nm`, `sound`, `constellations`, `hud` (info panel visibility), `fullscreen`. Not sensitive, but still per-deployment. Unlike `config.json`, this one is plain `key=value` text specifically so you can hand-edit it directly — helpful on a headless kiosk device where clicking through the gear icon isn't convenient. Changes to this file take effect on the next page load; changes made via the gear icon reload automatically.
 
 Tunable constants sit at the top of `public/app.js` (altitude visibility thresholds, trail length) and `public/audio.js` (volumes, ATC chatter frequency).
 

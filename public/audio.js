@@ -1,8 +1,10 @@
 /* Vimana — ambient audio.
-   Two layers, both behind the HUD "sound" toggle (browsers refuse to
-   autoplay audio until the user interacts with the page, so the toggle
-   click doubles as the unlock gesture; a kiosk Chromium can bypass
-   this with --autoplay-policy=no-user-gesture-required):
+   Two layers, both driven by app.js's setSound() -- called on load per
+   default_settings.cfg / URL param, or toggled from the gear icon's
+   settings panel. Browsers refuse to autoplay audio without a user
+   gesture; if sound is enabled without one (e.g. on page load), it
+   silently retries on first click/tap. A kiosk Chromium can bypass
+   this entirely with --autoplay-policy=no-user-gesture-required:
 
    1. Music: assets/Skybound.mp3 on a gentle loop.
    2. Sporadic "ATC radio": short AI-generated voice clips pushed
@@ -137,23 +139,27 @@ function scheduleNextTransmission() {
   }, delay);
 }
 
+let soundWanted = false; // tracks the last setSound() call, for the retry below
+
 function setSound(on) {
+  soundWanted = on;
   if (on) {
     initAudioOnce();
     audioCtx.resume();
     music.play().catch(() => {
-      // Autoplay blocked (no user gesture yet -- happens when the
-      // ?sound=1 kiosk URL is opened in a normal browser without
-      // Chromium's --autoplay-policy flag). Retry on first interaction.
+      // Autoplay blocked (no user gesture yet -- happens when sound is
+      // enabled by default_settings.cfg/URL param rather than a click,
+      // in a browser without an autoplay-policy override). Retry on
+      // first interaction, unless sound got turned off again meanwhile.
       window.addEventListener(
         "pointerdown",
         () => {
-          if (document.getElementById("sound-input").checked) setSound(true);
+          if (soundWanted) setSound(true);
         },
         { once: true }
       );
     });
-    playTransmission(); // one immediately, so the toggle feels alive
+    playTransmission(); // one immediately, so enabling sound feels alive
     scheduleNextTransmission();
   } else {
     if (music) music.pause();
@@ -161,5 +167,3 @@ function setSound(on) {
     if (audioCtx) audioCtx.suspend();
   }
 }
-
-document.getElementById("sound-input").addEventListener("change", (e) => setSound(e.target.checked));

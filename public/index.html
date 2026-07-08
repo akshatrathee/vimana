@@ -28,18 +28,6 @@
   <div class="row"><span><span class="status-dot" id="status-dot"></span>status</span><span class="value" id="status-text">connecting</span></div>
   <div class="row"><span>aircraft tracked</span><span class="value" id="ac-count">0</span></div>
   <div class="row"><span>last update</span><span class="value" id="last-update">--</span></div>
-  <div class="radius-control">
-    <label for="radius-input">radius (nm)</label>
-    <input type="number" id="radius-input" min="5" max="250" step="5" value="40">
-  </div>
-  <div class="radius-control">
-    <label for="constellations-input">constellations</label>
-    <input type="checkbox" id="constellations-input">
-  </div>
-  <div class="radius-control">
-    <label for="sound-input">sound</label>
-    <input type="checkbox" id="sound-input">
-  </div>
 </div>
 
 <button id="fullscreen-btn" title="Toggle fullscreen">&#x26F6; fullscreen</button>
@@ -78,17 +66,22 @@
     </fieldset>
 
     <fieldset>
-      <legend>Display defaults</legend>
+      <legend>Display defaults <span class="optional">(applied on load; edited only here)</span></legend>
       <div class="coord-row">
         <label>Radius (nm) <input type="number" id="setup-radius" min="5" max="250" step="5" value="40"></label>
         <label class="check-label"><input type="checkbox" id="setup-sound"> Music &amp; ATC audio</label>
         <label class="check-label"><input type="checkbox" id="setup-constellations"> Constellations</label>
       </div>
+      <div class="coord-row">
+        <label class="check-label"><input type="checkbox" id="setup-hud"> Show info panel</label>
+        <label class="check-label"><input type="checkbox" id="setup-fullscreen"> Start fullscreen</label>
+      </div>
+      <p class="setup-hint">"Start fullscreen" is best-effort — most browsers block auto-fullscreen until you interact with the page at least once; the fullscreen button below always works as a fallback.</p>
     </fieldset>
 
     <fieldset>
       <legend>Projector URL <span class="optional">(for a Raspberry Pi / kiosk display)</span></legend>
-      <p class="setup-hint">A clean, control-free display URL with the settings above baked in. Save first, then put this URL on the kiosk device — see <code>deploy/README.md</code>.</p>
+      <p class="setup-hint">A clean, control-free display URL with the settings above baked in — useful for a second display that wants different values than the defaults. Save first, then put this URL on the kiosk device — see <code>deploy/README.md</code>.</p>
       <div class="url-row">
         <input type="text" id="projector-url" readonly>
         <button type="button" id="copy-url-btn" title="Copy">Copy</button>

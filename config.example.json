@@ -3,7 +3,6 @@
   "home_lat": 37.6191,
   "home_lon": -122.3816,
   "home_label": "My house",
-  "radius_nm": 40,
   "poll_interval_seconds": 8,
   "poi": [
     {

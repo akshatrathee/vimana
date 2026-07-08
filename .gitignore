@@ -2,5 +2,9 @@
 # Never commit this: it contains your home coordinates.
 config.json
 
+# Display preferences -- not sensitive, but personal to each deployment
+# (see default_settings.example.cfg for the format/fallback values).
+default_settings.cfg
+
 __pycache__/
 *.pyc

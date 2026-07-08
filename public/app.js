@@ -6,12 +6,10 @@
 let HOME_LAT, HOME_LON, HOME_LABEL, RADIUS_NM, POLL_MS;
 let POIS = [];
 
-/* URL parameters drive kiosk/projector mode: the settings panel
-   generates a link like /?display=1&radius=40&sound=1&constellations=0
-   so a Raspberry Pi shows a clean, control-free screen with everything
-   decided up front. */
+/* URL query parameters override default_settings.cfg on a per-load
+   basis -- e.g. the settings panel's generated projector URL, for a
+   second display that wants different values than the defaults. */
 const URL_PARAMS = new URLSearchParams(location.search);
-const DISPLAY_MODE = URL_PARAMS.get("display") === "1";
 let radarRadiusPx = 0;
 let centerX = 0, centerY = 0;
 let lastList = [];
@@ -557,21 +555,6 @@ function updateClock() {
 }
 
 function wireControls() {
-  const radiusInput = document.getElementById("radius-input");
-  radiusInput.addEventListener("change", () => {
-    const v = Math.max(5, Math.min(250, Number(radiusInput.value) || RADIUS_NM));
-    RADIUS_NM = v;
-    radiusInput.value = v;
-    drawRings(RADIUS_NM);
-    updateLabelScale();
-    refreshAircraft();
-  });
-
-  document.getElementById("constellations-input").addEventListener("change", (e) => {
-    SHOW_CONSTELLATIONS = e.target.checked;
-    generateStarfield();
-  });
-
   document.getElementById("fullscreen-btn").addEventListener("click", () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().catch(() => {});
@@ -602,6 +585,8 @@ function openSetup(cfg, firstRun) {
   val("setup-radius", cfg.radius_nm ?? 40);
   document.getElementById("setup-sound").checked = !!cfg.sound_enabled;
   document.getElementById("setup-constellations").checked = !!cfg.show_constellations;
+  document.getElementById("setup-hud").checked = cfg.hud_default !== false;
+  document.getElementById("setup-fullscreen").checked = !!cfg.fullscreen_default;
   updateProjectorUrl();
   document.getElementById("setup-cancel").classList.toggle("hidden", firstRun);
   document.getElementById("setup-error").classList.add("hidden");
@@ -616,7 +601,9 @@ function updateProjectorUrl() {
   const radius = document.getElementById("setup-radius").value || cfg.radius_nm || 40;
   const sound = document.getElementById("setup-sound").checked ? 1 : 0;
   const consts = document.getElementById("setup-constellations").checked ? 1 : 0;
-  const url = `http://${host}/?display=1&radius=${radius}&sound=${sound}&constellations=${consts}`;
+  const hud = document.getElementById("setup-hud").checked ? 1 : 0;
+  const fullscreen = document.getElementById("setup-fullscreen").checked ? 1 : 0;
+  const url = `http://${host}/?radius=${radius}&sound=${sound}&constellations=${consts}&hud=${hud}&fullscreen=${fullscreen}`;
   document.getElementById("projector-url").value = url;
 }
 
@@ -667,6 +654,8 @@ async function saveSetup() {
       radius_nm: parseFloat(get("setup-radius")) || 40,
       sound_enabled: document.getElementById("setup-sound").checked,
       show_constellations: document.getElementById("setup-constellations").checked,
+      hud_default: document.getElementById("setup-hud").checked,
+      fullscreen_default: document.getElementById("setup-fullscreen").checked,
     }),
   });
   if (!res.ok) {
@@ -698,12 +687,9 @@ async function init() {
     openSetup(CONFIG_SNAPSHOT, false);
   });
   document.getElementById("copy-url-btn").addEventListener("click", copyProjectorUrl);
-  ["setup-radius", "setup-sound", "setup-constellations"].forEach((id) => {
+  ["setup-radius", "setup-sound", "setup-constellations", "setup-hud", "setup-fullscreen"].forEach((id) => {
     document.getElementById(id).addEventListener("input", updateProjectorUrl);
   });
-
-  if (DISPLAY_MODE) document.body.classList.add("display-mode");
-  if (URL_PARAMS.get("hud") === "0") document.body.classList.add("no-hud");
 
   if (!cfg.configured) {
     openSetup(cfg, true);
@@ -716,16 +702,21 @@ async function init() {
   POIS = cfg.poi || [];
   POLL_MS = cfg.poll_interval_seconds * 1000;
 
-  // Precedence: URL parameter (kiosk link) > saved config default.
+  // Every one of these follows the same precedence: an explicit URL
+  // query parameter (e.g. a per-device projector link) wins; otherwise
+  // fall back to default_settings.cfg's values (the plain page load,
+  // with no query string at all, is what the gear icon configures).
   const urlRadius = parseFloat(URL_PARAMS.get("radius"));
   RADIUS_NM = isFinite(urlRadius) ? Math.max(5, Math.min(250, urlRadius)) : cfg.radius_nm;
 
   const constParam = URL_PARAMS.get("constellations");
   SHOW_CONSTELLATIONS = constParam != null ? constParam === "1" : !!cfg.show_constellations;
-  document.getElementById("constellations-input").checked = SHOW_CONSTELLATIONS;
   if (SHOW_CONSTELLATIONS) generateStarfield();
 
-  document.getElementById("radius-input").value = RADIUS_NM;
+  const hudParam = URL_PARAMS.get("hud");
+  const hudVisible = hudParam != null ? hudParam === "1" : cfg.hud_default !== false;
+  document.body.classList.toggle("no-hud", !hudVisible);
+
   document.getElementById("home-label").textContent = HOME_LABEL;
 
   drawRings(RADIUS_NM);
@@ -737,10 +728,16 @@ async function init() {
 
   const soundParam = URL_PARAMS.get("sound");
   const soundOn = soundParam != null ? soundParam === "1" : !!cfg.sound_enabled;
-  if (soundOn) {
-    const soundInput = document.getElementById("sound-input");
-    soundInput.checked = true;
-    soundInput.dispatchEvent(new Event("change", { bubbles: true }));
+  if (soundOn) setSound(true);
+
+  const fsParam = URL_PARAMS.get("fullscreen");
+  const wantsFullscreen = fsParam != null ? fsParam === "1" : !!cfg.fullscreen_default;
+  if (wantsFullscreen) {
+    // Browsers require a user gesture for the Fullscreen API in most
+    // configurations, so this best-effort attempt commonly gets
+    // silently rejected on a fresh page load -- the fullscreen button
+    // is the reliable fallback, which is why it's never hidden.
+    document.documentElement.requestFullscreen().catch(() => {});
   }
 }
 

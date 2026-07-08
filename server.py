@@ -36,12 +36,23 @@ CONFIG_DEFAULTS = {
     "home_lat": None,
     "home_lon": None,
     "home_label": "",
-    "radius_nm": 40,
     "poll_interval_seconds": 8,
     "poi": [],
-    "sound_enabled": False,
-    "show_constellations": False,
 }
+
+# Kept deliberately separate from config.json: config.json is personal
+# (your home coordinates) and gitignored, while this is just display
+# preferences -- safe to read/hand-edit, and plain key=value rather
+# than JSON so it's approachable without knowing any syntax rules.
+DEFAULT_SETTINGS_PATH = ROOT / "default_settings.cfg"
+DEFAULT_SETTINGS_DEFAULTS = {
+    "radius_nm": 40.0,
+    "sound": False,
+    "constellations": False,
+    "hud": True,
+    "fullscreen": False,
+}
+_BOOL_TRUE = {"1", "true", "yes", "on"}
 
 SERVER_PORT = None  # set in main() once the port is known
 
@@ -78,7 +89,45 @@ def is_configured(cfg):
     return cfg.get("home_lat") is not None and cfg.get("home_lon") is not None
 
 
+def load_default_settings():
+    settings = dict(DEFAULT_SETTINGS_DEFAULTS)
+    if not DEFAULT_SETTINGS_PATH.exists():
+        return settings
+    for line in DEFAULT_SETTINGS_PATH.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip()
+        if key == "radius_nm":
+            try:
+                settings["radius_nm"] = max(5.0, min(250.0, float(value)))
+            except ValueError:
+                pass
+        elif key in ("sound", "constellations", "hud", "fullscreen"):
+            settings[key] = value.lower() in _BOOL_TRUE
+    return settings
+
+
+def save_default_settings(settings):
+    lines = [
+        "# Vimana default display settings.",
+        "# Applied whenever the page loads without URL query overrides",
+        "# (e.g. ?radius=60 always wins over the radius_nm line below).",
+        "# Edit by hand and refresh the page, or use the gear icon in the app.",
+        "",
+        f"radius_nm={settings['radius_nm']}",
+        f"sound={1 if settings['sound'] else 0}",
+        f"constellations={1 if settings['constellations'] else 0}",
+        f"hud={1 if settings['hud'] else 0}",
+        f"fullscreen={1 if settings['fullscreen'] else 0}",
+        "",
+    ]
+    DEFAULT_SETTINGS_PATH.write_text("\n".join(lines), encoding="utf-8")
+
+
 CONFIG = load_config()
+DEFAULT_SETTINGS = load_default_settings()
 
 # Community ADS-B networks have very uneven receiver coverage per
 # region (over Delhi, adsb.lol often sees a fraction of what adsb.fi
@@ -226,11 +275,13 @@ class Handler(SimpleHTTPRequestHandler):
                 "home_lat": CONFIG["home_lat"],
                 "home_lon": CONFIG["home_lon"],
                 "home_label": CONFIG.get("home_label", ""),
-                "radius_nm": CONFIG["radius_nm"],
                 "poll_interval_seconds": CONFIG["poll_interval_seconds"],
                 "poi": CONFIG.get("poi", []),
-                "sound_enabled": bool(CONFIG.get("sound_enabled", False)),
-                "show_constellations": bool(CONFIG.get("show_constellations", False)),
+                "radius_nm": DEFAULT_SETTINGS["radius_nm"],
+                "sound_enabled": DEFAULT_SETTINGS["sound"],
+                "show_constellations": DEFAULT_SETTINGS["constellations"],
+                "hud_default": DEFAULT_SETTINGS["hud"],
+                "fullscreen_default": DEFAULT_SETTINGS["fullscreen"],
                 "lan_ip": get_lan_ip(),
                 "port": SERVER_PORT,
             })
@@ -240,11 +291,11 @@ class Handler(SimpleHTTPRequestHandler):
             if not is_configured(CONFIG):
                 self._send_json(409, {"error": "not_configured"})
                 return
-            radius_nm = parse_qs(parsed.query).get("radius_nm", [CONFIG["radius_nm"]])[0]
+            radius_nm = parse_qs(parsed.query).get("radius_nm", [DEFAULT_SETTINGS["radius_nm"]])[0]
             try:
                 radius_nm = max(1, min(250, float(radius_nm)))
             except ValueError:
-                radius_nm = CONFIG["radius_nm"]
+                radius_nm = DEFAULT_SETTINGS["radius_nm"]
 
             try:
                 body, from_cache = fetch_aircraft(radius_nm)
@@ -303,23 +354,14 @@ class Handler(SimpleHTTPRequestHandler):
             except (KeyError, TypeError, ValueError):
                 continue
 
-        try:
-            radius_nm = max(5, min(250, float(incoming.get("radius_nm", CONFIG.get("radius_nm", 40)))))
-        except (TypeError, ValueError):
-            radius_nm = CONFIG.get("radius_nm", 40)
-
         new_config = dict(CONFIG_DEFAULTS)
         new_config.update({
             "home_lat": lat,
             "home_lon": lon,
             "home_label": str(incoming.get("home_label", ""))[:60],
-            "radius_nm": radius_nm,
             "poll_interval_seconds": CONFIG.get("poll_interval_seconds", 8),
             "poi": pois,
-            "sound_enabled": bool(incoming.get("sound_enabled", False)),
-            "show_constellations": bool(incoming.get("show_constellations", False)),
         })
-
         CONFIG_PATH.write_text(
             json.dumps(new_config, indent=2, ensure_ascii=False), encoding="utf-8"
         )
@@ -327,6 +369,22 @@ class Handler(SimpleHTTPRequestHandler):
         CONFIG.update(new_config)
         # Home moved: cached aircraft data is for the old location.
         _cache.update({"radius": None, "body": None, "fetched_at": 0.0})
+
+        try:
+            radius_nm = max(5.0, min(250.0, float(incoming.get("radius_nm", DEFAULT_SETTINGS["radius_nm"]))))
+        except (TypeError, ValueError):
+            radius_nm = DEFAULT_SETTINGS["radius_nm"]
+
+        new_settings = {
+            "radius_nm": radius_nm,
+            "sound": bool(incoming.get("sound_enabled", False)),
+            "constellations": bool(incoming.get("show_constellations", False)),
+            "hud": bool(incoming.get("hud_default", True)),
+            "fullscreen": bool(incoming.get("fullscreen_default", False)),
+        }
+        save_default_settings(new_settings)
+        DEFAULT_SETTINGS.clear()
+        DEFAULT_SETTINGS.update(new_settings)
 
         self._send_json(200, {"ok": True})
 

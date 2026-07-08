@@ -274,24 +274,6 @@ html, body {
 #hud .status-dot.live { background: #35ff8a; box-shadow: 0 0 6px #35ff8a; }
 #hud .status-dot.down { background: var(--red); box-shadow: 0 0 6px var(--red); }
 
-#hud .radius-control {
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--text-dim);
-}
-#hud .radius-control input {
-  width: 50px;
-  background: #000;
-  border: 1px solid var(--border);
-  color: #cfe3f5;
-  font-family: inherit;
-  font-size: 11px;
-  padding: 2px 4px;
-}
-
 #fullscreen-btn {
   position: absolute;
   bottom: 14px;
@@ -432,13 +414,11 @@ html, body {
 #setup-panel .url-row button:hover { background: rgba(140, 170, 200, 0.22); }
 #setup-panel code { color: #a8cfe8; font-size: 11px; }
 
-/* Kiosk/projector mode (?display=1): every interactive control
-   disappears; ?hud=0 additionally hides the whole info panel. */
-body.display-mode #hud .radius-control,
-body.display-mode #fullscreen-btn,
-body.display-mode #settings-btn {
-  display: none !important;
-}
+/* The info panel (clock/status/count) is hidden by default -- see
+   default_settings.cfg's "hud" key, overridable with ?hud=0/1. The
+   gear and fullscreen buttons are NOT part of this: they must always
+   stay reachable, since the gear icon is the only way back into the
+   settings that control everything else. */
 body.no-hud #hud { display: none !important; }
 
 #setup-error {
