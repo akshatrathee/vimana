@@ -128,6 +128,36 @@ def save_default_settings(settings):
 
 CONFIG = load_config()
 DEFAULT_SETTINGS = load_default_settings()
+_config_mtime = CONFIG_PATH.stat().st_mtime if CONFIG_PATH.exists() else None
+_default_settings_mtime = DEFAULT_SETTINGS_PATH.stat().st_mtime if DEFAULT_SETTINGS_PATH.exists() else None
+
+
+def reload_if_changed():
+    # config.json and default_settings.cfg both used to be read only
+    # once, at process startup -- hand-editing either one (or, on
+    # Windows, restoring config.example.json over config.json) had no
+    # effect until the server was manually restarted, which was a
+    # recurring source of confusion. A stat() on every request is
+    # cheap enough that there's no real reason not to just check.
+    global _config_mtime, _default_settings_mtime
+
+    try:
+        mtime = CONFIG_PATH.stat().st_mtime if CONFIG_PATH.exists() else None
+    except OSError:
+        mtime = None
+    if mtime != _config_mtime:
+        _config_mtime = mtime
+        CONFIG.clear()
+        CONFIG.update(load_config())
+
+    try:
+        mtime = DEFAULT_SETTINGS_PATH.stat().st_mtime if DEFAULT_SETTINGS_PATH.exists() else None
+    except OSError:
+        mtime = None
+    if mtime != _default_settings_mtime:
+        _default_settings_mtime = mtime
+        DEFAULT_SETTINGS.clear()
+        DEFAULT_SETTINGS.update(load_default_settings())
 
 # Community ADS-B networks have very uneven receiver coverage per
 # region (over Delhi, adsb.lol often sees a fraction of what adsb.fi
@@ -267,6 +297,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
+        reload_if_changed()
         parsed = urlparse(self.path)
 
         if parsed.path == "/api/config":
@@ -390,6 +421,8 @@ class Handler(SimpleHTTPRequestHandler):
         )
         CONFIG.clear()
         CONFIG.update(new_config)
+        global _config_mtime
+        _config_mtime = CONFIG_PATH.stat().st_mtime
         # Home moved: cached aircraft data is for the old location.
         _cache.update({"radius": None, "body": None, "fetched_at": 0.0})
 
@@ -408,6 +441,8 @@ class Handler(SimpleHTTPRequestHandler):
         save_default_settings(new_settings)
         DEFAULT_SETTINGS.clear()
         DEFAULT_SETTINGS.update(new_settings)
+        global _default_settings_mtime
+        _default_settings_mtime = DEFAULT_SETTINGS_PATH.stat().st_mtime
 
         self._send_json(200, {"ok": True})
 

@@ -884,11 +884,25 @@ async function init() {
   const fsParam = URL_PARAMS.get("fullscreen");
   const wantsFullscreen = fsParam != null ? fsParam === "1" : true;
   if (wantsFullscreen) {
-    // Browsers require a user gesture for the Fullscreen API in most
-    // configurations, so this best-effort attempt commonly gets
-    // silently rejected on a fresh page load -- the fullscreen button
-    // is the reliable fallback, which is why it's never hidden.
-    document.documentElement.requestFullscreen().catch(() => {});
+    // No browser allows a page to enter fullscreen without a genuine
+    // user gesture first -- there's no flag or trick around this, on
+    // any browser, by design (a site silently taking over the whole
+    // screen is exactly what this restriction exists to prevent). The
+    // one thing we CAN do is make the very first click/tap anywhere on
+    // the page (not specifically the fullscreen button) count as that
+    // gesture, same pattern as the audio autoplay retry below. On an
+    // actual kiosk deployment (deploy/kiosk.sh's Chromium --kiosk
+    // flag), this is moot anyway -- the browser window itself starts
+    // fullscreen and this call never needs to fire at all.
+    document.documentElement.requestFullscreen().catch(() => {
+      document.addEventListener(
+        "pointerdown",
+        () => {
+          if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+        },
+        { once: true }
+      );
+    });
   }
 }
 

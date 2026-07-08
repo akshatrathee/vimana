@@ -13,9 +13,12 @@
       track rather than dipping to silence and restarting).
    2. Sporadic "ATC radio": 13 short AI-generated voice clips, one
       picked at random each time, pushed through a Web Audio radio
-      chain (bandpass + soft clipping + noise bed + squelch clicks),
-      fired at random 15-45s intervals. If the clips are missing, it
-      falls back to static-only bursts.
+      chain (bandpass + soft clipping + noise bed + squelch clicks).
+      Timing is a hard 30s floor of silence after each clip *ends*,
+      plus a further random 15-45s on top -- see the scheduling
+      comment below for why "measure the gap from clip start" was a
+      real bug, not just a tuning choice. If the clips are missing,
+      it falls back to static-only bursts.
 
    Controller-voiced clips (ground/tower/approach) share one accent
    direction -- neutral, with a very subtle North Indian inflection,
@@ -41,8 +44,13 @@ const ATC_CLIPS = [
   "assets/atc/atc-akasa.mp3",
 ];
 const ATC_VOLUME = 0.5;
-const ATC_MIN_GAP_MS = 15 * 1000;
-const ATC_MAX_GAP_MS = 45 * 1000;
+// Two-stage gap, both measured from when the CLIP ENDS, not when it
+// started: a hard 30s floor of silence, then a further random 15-45s
+// on top. Total silence between one clip ending and the next starting
+// is therefore always 45-75s.
+const ATC_SILENCE_FLOOR_MS = 30 * 1000;
+const ATC_EXTRA_MIN_MS = 15 * 1000;
+const ATC_EXTRA_MAX_MS = 45 * 1000;
 
 let audioCtx = null;
 let music = null;
@@ -100,6 +108,9 @@ function playSquelch(atTime, gainValue) {
   src.start(atTime);
 }
 
+/* Returns the burst's audible duration in seconds, so the scheduler
+   (see scheduleNextTransmission) can offset the next gap by exactly
+   how long this one actually plays for. */
 function playStaticBurst(seconds) {
   const now = audioCtx.currentTime;
   const src = audioCtx.createBufferSource();
@@ -115,12 +126,22 @@ function playStaticBurst(seconds) {
   src.start(now);
   playSquelch(now, ATC_VOLUME * 0.3);
   playSquelch(now + seconds - 0.05, ATC_VOLUME * 0.25);
+  return seconds;
 }
 
+/*
+ * Returns the transmission's total audible duration in seconds. This
+ * is the piece that was missing before: the scheduler used to wait a
+ * fixed 15-45s measured from when THIS function was *called*, not
+ * from when the clip actually finished playing -- so a 13s clip with
+ * a 15s roll of the dice left only ~2s of real silence before the
+ * next one fired. Returning the real duration lets the caller offset
+ * the next gap correctly regardless of which clip (4.5s to 13s) got
+ * picked.
+ */
 function playTransmission() {
   if (!atcBuffers.length) {
-    playStaticBurst(0.8 + Math.random() * 1.2);
-    return;
+    return playStaticBurst(0.8 + Math.random() * 1.2);
   }
   const buffer = atcBuffers[Math.floor(Math.random() * atcBuffers.length)];
   const now = audioCtx.currentTime;
@@ -128,7 +149,8 @@ function playTransmission() {
   const src = audioCtx.createBufferSource();
   src.buffer = buffer;
   // Slight speed jitter: no two transmissions sound identical.
-  src.playbackRate.value = 0.96 + Math.random() * 0.08;
+  const playbackRate = 0.96 + Math.random() * 0.08;
+  src.playbackRate.value = playbackRate;
 
   const bp = audioCtx.createBiquadFilter();
   bp.type = "bandpass";
@@ -150,21 +172,35 @@ function playTransmission() {
   bedGain.gain.value = ATC_VOLUME * 0.05;
   bed.connect(bedGain).connect(audioCtx.destination);
 
+  // playbackRate changes how long src actually takes to play (a
+  // slowed-down clip runs longer than its raw buffer.duration), so
+  // the "when does this transmission truly end" calculation has to
+  // account for it -- both for the trailing squelch and, more
+  // importantly now, for the caller's gap-timing offset.
+  const startOffset = 0.08;
+  const audibleDuration = buffer.duration / playbackRate;
+  const voiceEnd = startOffset + audibleDuration;
+  const bedEnd = buffer.duration + 0.2;
+
   playSquelch(now, ATC_VOLUME * 0.35);
-  src.start(now + 0.08);
+  src.start(now + startOffset);
   bed.start(now);
-  playSquelch(now + 0.08 + buffer.duration, ATC_VOLUME * 0.3);
+  playSquelch(now + voiceEnd, ATC_VOLUME * 0.3);
+
+  return Math.max(voiceEnd, bedEnd) + 0.1; // small pad past the trailing squelch click
 }
 
-function scheduleNextTransmission() {
-  const delay = ATC_MIN_GAP_MS + Math.random() * (ATC_MAX_GAP_MS - ATC_MIN_GAP_MS);
+function scheduleNextTransmission(lastDurationSec) {
+  const extra = ATC_EXTRA_MIN_MS + Math.random() * (ATC_EXTRA_MAX_MS - ATC_EXTRA_MIN_MS);
+  const delay = lastDurationSec * 1000 + ATC_SILENCE_FLOOR_MS + extra;
   atcTimer = setTimeout(() => {
-    playTransmission();
-    scheduleNextTransmission();
+    const duration = playTransmission();
+    scheduleNextTransmission(duration);
   }, delay);
 }
 
 let soundWanted = false; // tracks the last setSound() call, for the retry below
+let atcRunning = false; // guards against a second, concurrent transmission chain
 
 function setSound(on) {
   soundWanted = on;
@@ -184,11 +220,23 @@ function setSound(on) {
         { once: true }
       );
     });
-    playTransmission(); // one immediately, so enabling sound feels alive
-    scheduleNextTransmission();
+    // setSound(true) can legitimately be called more than once while
+    // already on -- the autoplay-retry path above calls it again on
+    // first click. Without this guard, each call started its own
+    // independent playTransmission()/scheduleNextTransmission() chain
+    // (the old pending setTimeout was never cancelled, just orphaned,
+    // and kept firing), so two chatter streams ran concurrently,
+    // interleaved, each individually honoring the minimum gap but
+    // together producing exactly the "too close together" symptom.
+    if (!atcRunning) {
+      atcRunning = true;
+      const duration = playTransmission(); // one immediately, so enabling sound feels alive
+      scheduleNextTransmission(duration);
+    }
   } else {
     if (music) music.pause();
     if (atcTimer) clearTimeout(atcTimer);
+    atcRunning = false;
     if (audioCtx) audioCtx.suspend();
   }
 }
